@@ -8,10 +8,13 @@ import { resolveSlots } from './render'
 
 export let activeInstance: any = null
 
+// 这里就只是初始化一些属性，并没有相关的声明周期的调用
 export function initLifecycle (vm: Component) {
+  // 取出用户输入的参数
   const options = vm.$options
 
   // locate first non-abstract parent
+  // abstract parent是什么东西？？一般并不会传入parent参数
   let parent = options.parent
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
@@ -191,6 +194,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
 }
 
 export function callHook (vm: Component, hook: string) {
+  // 从$options获取key对应的生命周期函数
   const handlers = vm.$options[hook]
   if (handlers) {
     for (let i = 0, j = handlers.length; i < j; i++) {

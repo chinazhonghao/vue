@@ -92,10 +92,12 @@ export function updateListeners (
     cur = on[name]
     old = oldOn[name]
     if (!cur) {
+      // 通过这种方式来关闭生产环境下的调试信息
       process.env.NODE_ENV !== 'production' && warn(
         `Handler for event "${name}" is undefined.`
       )
     } else if (!old) {
+      // 捕获阶段
       capture = name.charAt(0) === '!'
       event = capture ? name.slice(1) : name
       if (Array.isArray(cur)) {

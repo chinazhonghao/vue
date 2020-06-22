@@ -7,6 +7,7 @@ export function initEvents (vm: Component) {
   vm._events = Object.create(null)
   // init parent attached events
   const listeners = vm.$options._parentListeners
+  // 绑定事件监听函数的执行上下文为当前vue实例对象，在函数内部通过this即可引用vue实例
   const on = bind(vm.$on, vm)
   const off = bind(vm.$off, vm)
   vm._updateListeners = (listeners, oldListeners) => {

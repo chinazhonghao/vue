@@ -120,6 +120,7 @@ var hyphenate = cached(function (str) {
 
 /**
  * Simple bind, faster than native
+ * 通过闭包来进行调用，绑定函数调用的上下文，确定是比较快吗？？？
  */
 function bind$1 (fn, ctx) {
   function boundFn (a) {
@@ -366,7 +367,6 @@ function parsePath (path) {
 /*  */
 /* globals MutationObserver */
 
-// can we use __proto__?
 var hasProto = '__proto__' in {};
 
 // Browser environment sniffing
@@ -563,9 +563,6 @@ Dep.prototype.notify = function notify () {
   }
 };
 
-// the current target watcher being evaluated.
-// this is globally unique because there could be only one
-// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -881,11 +878,6 @@ Watcher.prototype.teardown = function teardown () {
   }
 };
 
-/**
- * Recursively traverse an object to evoke all converted
- * getters, so that every nested property inside the object
- * is collected as a "deep" dependency.
- */
 var seenObjects = new _Set();
 function traverse (val, seen) {
   var i, keys;
@@ -1429,6 +1421,7 @@ var VNode = function VNode (
 };
 
 var emptyVNode = function () {
+  // 这里不传参数也可吗？？？定义的构造函数好像没有约束力
   var node = new VNode();
   node.text = '';
   node.isComment = true;
@@ -1613,10 +1606,13 @@ function fnInvoker (o) {
 
 var activeInstance = null;
 
+// 这里就只是初始化一些属性，并没有相关的声明周期的调用
 function initLifecycle (vm) {
+  // 取出用户输入的参数
   var options = vm.$options;
 
   // locate first non-abstract parent
+  // abstract parent是什么东西？？一般并不会传入parent参数
   var parent = options.parent;
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
@@ -2098,8 +2094,6 @@ function mergeHook$1 (a, b) {
 
 /*  */
 
-// wrapper function for providing a more flexible interface
-// without getting yelled at by flow
 function createElement (
   tag,
   data,
@@ -2478,17 +2472,25 @@ function eventsMixin (Vue) {
 }
 
 /*  */
+// flow.js用法：https://segmentfault.com/a/1190000006983211
+// 官网：https://flow.org/
 
 var uid = 0;
 
 function initMixin (Vue) {
+  // 参数options即是通过new Vue({})传入的参数
+  // Vue已经定义过了，在index.js里面声明了Vue函数（通过instanceOf限制其成为构造函数)
+  // new Vue({})时，调用了这个_init函数
   Vue.prototype._init = function (options) {
+    // 通过new进行调用，this指向新创建的Vue对象
     var vm = this;
+    // 在实例上定义一些属性
     // a uid
     vm._uid = uid++;
     // a flag to avoid this being observed
     vm._isVue = true;
     // merge options
+    // 将new Vue({})时传入的参数挂载到实例的$options属性上
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -2506,6 +2508,7 @@ function initMixin (Vue) {
       initProxy(vm);
     }
     // expose real self
+    // 为什么要这么赋值一下呢？？
     vm._self = vm;
     initLifecycle(vm);
     initEvents(vm);
@@ -2554,6 +2557,7 @@ function Vue$3 (options) {
     !(this instanceof Vue$3)) {
     warn('Vue is a constructor and should be called with the `new` keyword');
   }
+  // 这里的this是何时被赋予Component对象类型的？？
   this._init(options);
 }
 
@@ -2597,11 +2601,6 @@ var formatComponentName;
 
 /*  */
 
-/**
- * Option overwriting strategies are functions that handle
- * how to merge a parent option value and a child option
- * value into the final value.
- */
 var strats = config.optionMergeStrategies;
 
 /**
@@ -3341,7 +3340,6 @@ Vue$3.version = '2.0.0';
 
 /*  */
 
-// attributes that should be using props for binding
 var mustUseProp = makeMap('value,selected,checked,muted');
 
 var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
@@ -3371,6 +3369,7 @@ var isAttr = makeMap(
   'target,title,type,usemap,value,width,wrap'
 );
 
+/* istanbul ignore next */
 
 
 var xlinkNS = 'http://www.w3.org/1999/xlink';
@@ -3558,9 +3557,6 @@ function isUnknownElement (tag) {
 
 /*  */
 
-/**
- * Query an element selector if it's not an element already.
- */
 function query (el) {
   if (typeof el === 'string') {
     var selector = el;
@@ -4972,8 +4968,6 @@ var platformModules = [
 
 /*  */
 
-// the directive module should be applied last, after all
-// built-in modules have been applied.
 var modules = platformModules.concat(baseModules);
 
 var patch$1 = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -5111,7 +5105,6 @@ function trigger (el, type) {
 
 /*  */
 
-// recursively search for possible transition defined inside the component root
 function locateNode (vnode) {
   return vnode.child && (!vnode.data || !vnode.data.transition)
     ? locateNode(vnode.child._vnode)
@@ -5484,7 +5477,6 @@ var platformComponents = {
 
 /*  */
 
-// install platform specific utils
 Vue$3.config.isUnknownElement = isUnknownElement;
 Vue$3.config.isReservedTag = isReservedTag;
 Vue$3.config.getTagNamespace = getTagNamespace;
@@ -5526,7 +5518,6 @@ setTimeout(function () {
 
 /*  */
 
-// check whether current browser encodes a char inside attribute values
 function shouldDecode (content, encoded) {
   var div = document.createElement('div');
   div.innerHTML = "<div a=\"" + content + "\">";
@@ -5564,7 +5555,6 @@ function decodeHTML (html) {
  * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
  */
 
-// Regular Expressions for parsing tags and attributes
 var singleAttrIdentifier = /([^\s"'<>\/=]+)/;
 var singleAttrAssign = /(?:=)/;
 var singleAttrValues = [
@@ -6675,7 +6665,6 @@ var baseDirectives = {
 
 /*  */
 
-// configurable state
 var warn$2;
 var transforms$1;
 var dataGenFns;
@@ -6899,9 +6888,6 @@ function genProps (props) {
 
 /*  */
 
-/**
- * Compile a template.
- */
 function compile$1 (
   template,
   options
@@ -6918,7 +6904,6 @@ function compile$1 (
 
 /*  */
 
-// operators like typeof, instanceof and in are allowed
 var prohibitedKeywordRE = new RegExp('\\b' + (
   'do,if,for,let,new,try,var,case,else,with,await,break,catch,class,const,' +
   'super,throw,while,yield,delete,export,import,return,switch,default,' +

@@ -5,11 +5,13 @@ export default class VNode {
   data: VNodeData | void;
   children: Array<VNode> | void;
   text: string | void;
+  // 浏览器中Node是native code
   elm: Node | void;
   ns: string | void;
   context: Component | void; // rendered in this component's scope
   key: string | number | void;
   componentOptions: VNodeComponentOptions | void;
+  // 这里不可以有多个字组件吗？？
   child: Component | void; // component instance
   parent: VNode | void; // compoennt placeholder node
   raw: boolean; // contains raw HTML? (server only)
@@ -48,6 +50,7 @@ export default class VNode {
 }
 
 export const emptyVNode = () => {
+  // 这里不传参数也可吗？？？定义的构造函数好像没有约束力
   const node = new VNode()
   node.text = ''
   node.isComment = true

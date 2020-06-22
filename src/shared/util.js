@@ -109,6 +109,7 @@ export const hyphenate = cached((str: string): string => {
 
 /**
  * Simple bind, faster than native
+ * 通过闭包来进行调用，绑定函数调用的上下文，确定是比较快吗？？？
  */
 export function bind (fn: Function, ctx: Object): Function {
   function boundFn (a) {

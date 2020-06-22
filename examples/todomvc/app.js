@@ -43,6 +43,10 @@ var app = new Vue({
     editedTodo: null,
     visibility: 'all'
   },
+  
+  beforeCreate() {
+    console.log("before create");
+  },
 
   // watch todos change for localStorage persistence
   watch: {

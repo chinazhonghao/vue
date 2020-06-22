@@ -1,4 +1,6 @@
 /* @flow */
+// flow.js用法：https://segmentfault.com/a/1190000006983211
+// 官网：https://flow.org/
 
 import { initProxy } from './proxy'
 import { initState } from './state'
@@ -10,13 +12,19 @@ import { mergeOptions } from '../util/index'
 let uid = 0
 
 export function initMixin (Vue: Class<Component>) {
+  // 参数options即是通过new Vue({})传入的参数
+  // Vue已经定义过了，在index.js里面声明了Vue函数（通过instanceOf限制其成为构造函数)
+  // new Vue({})时，调用了这个_init函数
   Vue.prototype._init = function (options?: Object) {
+    // 通过new进行调用，this指向新创建的Vue对象
     const vm: Component = this
+    // 在实例上定义一些属性
     // a uid
     vm._uid = uid++
     // a flag to avoid this being observed
     vm._isVue = true
     // merge options
+    // 将new Vue({})时传入的参数挂载到实例的$options属性上
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -36,6 +44,7 @@ export function initMixin (Vue: Class<Component>) {
       vm._renderProxy = vm
     }
     // expose real self
+    // 为什么要这么赋值一下呢？？
     vm._self = vm
     initLifecycle(vm)
     initEvents(vm)

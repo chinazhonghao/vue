@@ -120,6 +120,7 @@ strats.data = function (
 /**
  * Hooks and param attributes are merged as arrays.
  */
+// 生命周期函数合并成数组，这样话多个之间有个执行顺序
 function mergeHook (
   parentVal: ?Array<Function>,
   childVal: ?Function | ?Array<Function>
@@ -293,6 +294,7 @@ export function mergeOptions (
       ? mergeOptions(parent, extendsFrom.options, vm)
       : mergeOptions(parent, extendsFrom, vm)
   }
+  // mixins的混合
   if (child.mixins) {
     for (let i = 0, l = child.mixins.length; i < l; i++) {
       let mixin = child.mixins[i]
