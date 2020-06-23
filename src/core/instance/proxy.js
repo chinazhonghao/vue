@@ -4,6 +4,7 @@ import { warn, makeMap } from '../util/index'
 
 let hasProxy, proxyHandlers, initProxy
 
+// 这样的话，能少占用点内存？？
 if (process.env.NODE_ENV !== 'production') {
   const allowedGlobals = makeMap(
     'Infinity,undefined,NaN,isFinite,isNaN,' +
@@ -12,14 +13,19 @@ if (process.env.NODE_ENV !== 'production') {
     'require' // for Webpack/Browserify
   )
 
+  // 执行之后：["native code", index: 20, input: "function Proxy() { [native code] }", groups: undefined]
   hasProxy =
     typeof Proxy !== 'undefined' &&
     Proxy.toString().match(/native code/)
 
   proxyHandlers = {
+    // 这里要代理has操作，in操作符的捕捉器，为什么要这么做呢？？
     has (target, key) {
       const has = key in target
+      // key不在target中，has为false
+      // allowedGlobals允许的关键字，或者以"_"开始的关键字
       const isAllowed = allowedGlobals(key) || key.charAt(0) === '_'
+      // key在target上，或者可以是上面定义的符号
       if (!has && !isAllowed) {
         warn(
           `Property or method "${key}" is not defined on the instance but ` +

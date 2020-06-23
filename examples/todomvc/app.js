@@ -34,6 +34,12 @@ var filters = {
   }
 }
 
+var mixins = {
+  beforeCreate(){
+    console.log("mixins beforeCreate");
+  }
+}
+
 // app Vue instance
 var app = new Vue({
   // app initial state
@@ -43,7 +49,8 @@ var app = new Vue({
     editedTodo: null,
     visibility: 'all'
   },
-  
+  mixins: [mixins],
+
   beforeCreate() {
     console.log("before create");
   },

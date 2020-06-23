@@ -198,6 +198,7 @@ export function callHook (vm: Component, hook: string) {
   const handlers = vm.$options[hook]
   if (handlers) {
     for (let i = 0, j = handlers.length; i < j; i++) {
+      // 调用钩子函数时，设置上下文this对象
       handlers[i].call(vm)
     }
   }

@@ -490,6 +490,7 @@ var hasProxy;
 var proxyHandlers;
 var initProxy;
 
+// 这样的话，能少占用点内存？？
 {
   var allowedGlobals = makeMap(
     'Infinity,undefined,NaN,isFinite,isNaN,' +
@@ -498,14 +499,19 @@ var initProxy;
     'require' // for Webpack/Browserify
   );
 
+  // 执行之后：["native code", index: 20, input: "function Proxy() { [native code] }", groups: undefined]
   hasProxy =
     typeof Proxy !== 'undefined' &&
     Proxy.toString().match(/native code/);
 
   proxyHandlers = {
+    // 这里要代理has操作，in操作符的捕捉器，为什么要这么做呢？？
     has: function has (target, key) {
       var has = key in target;
+      // key不在target中，has为false
+      // allowedGlobals允许的关键字，或者以"_"开始的关键字
       var isAllowed = allowedGlobals(key) || key.charAt(0) === '_';
+      // key在target上，或者可以是上面定义的符号
       if (!has && !isAllowed) {
         warn(
           "Property or method \"" + key + "\" is not defined on the instance but " +
@@ -1548,10 +1554,12 @@ function updateListeners (
     cur = on[name];
     old = oldOn[name];
     if (!cur) {
+      // 通过这种方式来关闭生产环境下的调试信息
       "development" !== 'production' && warn(
         ("Handler for event \"" + name + "\" is undefined.")
       );
     } else if (!old) {
+      // 捕获阶段
       capture = name.charAt(0) === '!';
       event = capture ? name.slice(1) : name;
       if (Array.isArray(cur)) {
@@ -1792,9 +1800,11 @@ function lifecycleMixin (Vue) {
 }
 
 function callHook (vm, hook) {
+  // 从$options获取key对应的生命周期函数
   var handlers = vm.$options[hook];
   if (handlers) {
     for (var i = 0, j = handlers.length; i < j; i++) {
+      // 调用钩子函数时，设置上下文this对象
       handlers[i].call(vm);
     }
   }
@@ -2401,6 +2411,7 @@ function initEvents (vm) {
   vm._events = Object.create(null);
   // init parent attached events
   var listeners = vm.$options._parentListeners;
+  // 绑定事件监听函数的执行上下文为当前vue实例对象，在函数内部通过this即可引用vue实例
   var on = bind$1(vm.$on, vm);
   var off = bind$1(vm.$off, vm);
   vm._updateListeners = function (listeners, oldListeners) {
@@ -2702,13 +2713,15 @@ strats.data = function (
 /**
  * Hooks and param attributes are merged as arrays.
  */
+// 生命周期函数合并成数组，这样话多个之间有个执行顺序
+// 主要是适用于mixins,同名钩子函数将合并为一个数组，混入对象的钩子将在组件自身钩子之前调用
 function mergeHook (
   parentVal,
   childVal
 ) {
   return childVal
     ? parentVal
-      ? parentVal.concat(childVal)
+      ? parentVal.concat(childVal) // 这个链接明显是parentVal在childVal之前，如何保证混入对象的钩子在组件自身钩子之前调用呢？？
       : Array.isArray(childVal)
         ? childVal
         : [childVal]
@@ -2861,6 +2874,7 @@ function normalizeDirectives (options) {
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
  */
+// child是输入的参数对象
 function mergeOptions (
   parent,
   child,
@@ -2875,12 +2889,16 @@ function mergeOptions (
       ? mergeOptions(parent, extendsFrom.options, vm)
       : mergeOptions(parent, extendsFrom, vm);
   }
+  // mixins的混合, 混合方式：先混合mixins属性上的内容，再混合options上的内容，因此调用时也会先调用mixins上的钩子函数
   if (child.mixins) {
     for (var i = 0, l = child.mixins.length; i < l; i++) {
+      // child.mixins中是输入选项中的mixin内容（用户定义部分）
       var mixin = child.mixins[i];
       if (mixin.prototype instanceof Vue$3) {
+        // 也可以从一个Vue对象上进行合并
         mixin = mixin.options;
       }
+      // 由于mixin的与输入的options结构相同，因此这里采用递归方式进行合并
       parent = mergeOptions(parent, mixin, vm);
     }
   }

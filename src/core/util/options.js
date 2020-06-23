@@ -121,13 +121,14 @@ strats.data = function (
  * Hooks and param attributes are merged as arrays.
  */
 // 生命周期函数合并成数组，这样话多个之间有个执行顺序
+// 主要是适用于mixins,同名钩子函数将合并为一个数组，混入对象的钩子将在组件自身钩子之前调用
 function mergeHook (
   parentVal: ?Array<Function>,
   childVal: ?Function | ?Array<Function>
 ): ?Array<Function> {
   return childVal
     ? parentVal
-      ? parentVal.concat(childVal)
+      ? parentVal.concat(childVal) // 这个链接明显是parentVal在childVal之前，如何保证混入对象的钩子在组件自身钩子之前调用呢？？
       : Array.isArray(childVal)
         ? childVal
         : [childVal]
@@ -280,6 +281,7 @@ function normalizeDirectives (options: Object) {
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
  */
+// child是输入的参数对象
 export function mergeOptions (
   parent: Object,
   child: Object,
@@ -294,13 +296,16 @@ export function mergeOptions (
       ? mergeOptions(parent, extendsFrom.options, vm)
       : mergeOptions(parent, extendsFrom, vm)
   }
-  // mixins的混合
+  // mixins的混合, 混合方式：先混合mixins属性上的内容，再混合options上的内容，因此调用时也会先调用mixins上的钩子函数
   if (child.mixins) {
     for (let i = 0, l = child.mixins.length; i < l; i++) {
+      // child.mixins中是输入选项中的mixin内容（用户定义部分）
       let mixin = child.mixins[i]
       if (mixin.prototype instanceof Vue) {
+        // 也可以从一个Vue对象上进行合并
         mixin = mixin.options
       }
+      // 由于mixin的与输入的options结构相同，因此这里采用递归方式进行合并
       parent = mergeOptions(parent, mixin, vm)
     }
   }
