@@ -26,6 +26,7 @@ if (process.env.NODE_ENV !== 'production') {
       // allowedGlobals允许的关键字，或者以"_"开始的关键字
       const isAllowed = allowedGlobals(key) || key.charAt(0) === '_'
       // key在target上，或者可以是上面定义的符号
+      // has为false并且isAllowed为false，会抛异常，（如果key不在target上，且不是被允许的属性，抛异常，这一块有点绕啊）
       if (!has && !isAllowed) {
         warn(
           `Property or method "${key}" is not defined on the instance but ` +
@@ -34,6 +35,7 @@ if (process.env.NODE_ENV !== 'production') {
           target
         )
       }
+      // has为true，或者isAllowed为false，返回true
       return has || !isAllowed
     }
   }
