@@ -20,6 +20,8 @@ if (process.env.NODE_ENV !== 'production') {
 
   proxyHandlers = {
     // 这里要代理has操作，in操作符的捕捉器，为什么要这么做呢？？
+    // 在开发环境中进行代理，可以检测在render过程中使用关键字的情况
+    // 这里其实有点bug,报错提示不明显，以_开头的自定义变量会返回false，导致浏览器报错【Uncaught ReferenceError: _test is not defined】
     has (target, key) {
       const has = key in target
       // key不在target中，has为false
@@ -36,6 +38,7 @@ if (process.env.NODE_ENV !== 'production') {
         )
       }
       // has为true，或者isAllowed为false，返回true
+      // key在target上，且不是关键字才会返回true
       return has || !isAllowed
     }
   }

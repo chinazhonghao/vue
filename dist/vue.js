@@ -367,6 +367,7 @@ function parsePath (path) {
 /*  */
 /* globals MutationObserver */
 
+// can we use __proto__?
 var hasProto = '__proto__' in {};
 
 // Browser environment sniffing
@@ -506,6 +507,7 @@ var initProxy;
 
   proxyHandlers = {
     // 这里要代理has操作，in操作符的捕捉器，为什么要这么做呢？？
+    // 在开发环境中进行代理，可以检测在render过程中使用关键字的情况
     has: function has (target, key) {
       var has = key in target;
       // key不在target中，has为false
@@ -522,6 +524,7 @@ var initProxy;
         );
       }
       // has为true，或者isAllowed为false，返回true
+      // key在target上，且不是关键字才会返回true
       return has || !isAllowed
     }
   };
@@ -571,6 +574,9 @@ Dep.prototype.notify = function notify () {
   }
 };
 
+// the current target watcher being evaluated.
+// this is globally unique because there could be only one
+// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -886,6 +892,11 @@ Watcher.prototype.teardown = function teardown () {
   }
 };
 
+/**
+ * Recursively traverse an object to evoke all converted
+ * getters, so that every nested property inside the object
+ * is collected as a "deep" dependency.
+ */
 var seenObjects = new _Set();
 function traverse (val, seen) {
   var i, keys;
@@ -2106,6 +2117,8 @@ function mergeHook$1 (a, b) {
 
 /*  */
 
+// wrapper function for providing a more flexible interface
+// without getting yelled at by flow
 function createElement (
   tag,
   data,
@@ -2517,6 +2530,7 @@ function initMixin (Vue) {
       );
     }
     /* istanbul ignore else */
+    // 这里只是对render方法进行代理
     {
       initProxy(vm);
     }
@@ -2565,6 +2579,11 @@ function initMixin (Vue) {
   }
 }
 
+/**
+ * 通过new运算符进行调用，new Vue()的形式，返回ele, 则ele.__proto__ === Vue.prototype
+ * instanceof运算符检测对象是否是某个构造函数的实例，即检测上述的等号是否存在
+ * @param {*} options 
+ */
 function Vue$3 (options) {
   if ("development" !== 'production' &&
     !(this instanceof Vue$3)) {
@@ -2614,6 +2633,11 @@ var formatComponentName;
 
 /*  */
 
+/**
+ * Option overwriting strategies are functions that handle
+ * how to merge a parent option value and a child option
+ * value into the final value.
+ */
 var strats = config.optionMergeStrategies;
 
 /**
@@ -3360,6 +3384,7 @@ Vue$3.version = '2.0.0';
 
 /*  */
 
+// attributes that should be using props for binding
 var mustUseProp = makeMap('value,selected,checked,muted');
 
 var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
@@ -3389,7 +3414,6 @@ var isAttr = makeMap(
   'target,title,type,usemap,value,width,wrap'
 );
 
-/* istanbul ignore next */
 
 
 var xlinkNS = 'http://www.w3.org/1999/xlink';
@@ -3577,6 +3601,9 @@ function isUnknownElement (tag) {
 
 /*  */
 
+/**
+ * Query an element selector if it's not an element already.
+ */
 function query (el) {
   if (typeof el === 'string') {
     var selector = el;
@@ -4988,6 +5015,8 @@ var platformModules = [
 
 /*  */
 
+// the directive module should be applied last, after all
+// built-in modules have been applied.
 var modules = platformModules.concat(baseModules);
 
 var patch$1 = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -5125,6 +5154,7 @@ function trigger (el, type) {
 
 /*  */
 
+// recursively search for possible transition defined inside the component root
 function locateNode (vnode) {
   return vnode.child && (!vnode.data || !vnode.data.transition)
     ? locateNode(vnode.child._vnode)
@@ -5497,6 +5527,7 @@ var platformComponents = {
 
 /*  */
 
+// install platform specific utils
 Vue$3.config.isUnknownElement = isUnknownElement;
 Vue$3.config.isReservedTag = isReservedTag;
 Vue$3.config.getTagNamespace = getTagNamespace;
@@ -5538,6 +5569,7 @@ setTimeout(function () {
 
 /*  */
 
+// check whether current browser encodes a char inside attribute values
 function shouldDecode (content, encoded) {
   var div = document.createElement('div');
   div.innerHTML = "<div a=\"" + content + "\">";
@@ -5575,6 +5607,7 @@ function decodeHTML (html) {
  * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
  */
 
+// Regular Expressions for parsing tags and attributes
 var singleAttrIdentifier = /([^\s"'<>\/=]+)/;
 var singleAttrAssign = /(?:=)/;
 var singleAttrValues = [
@@ -6685,6 +6718,7 @@ var baseDirectives = {
 
 /*  */
 
+// configurable state
 var warn$2;
 var transforms$1;
 var dataGenFns;
@@ -6908,6 +6942,9 @@ function genProps (props) {
 
 /*  */
 
+/**
+ * Compile a template.
+ */
 function compile$1 (
   template,
   options
@@ -6924,6 +6961,7 @@ function compile$1 (
 
 /*  */
 
+// operators like typeof, instanceof and in are allowed
 var prohibitedKeywordRE = new RegExp('\\b' + (
   'do,if,for,let,new,try,var,case,else,with,await,break,catch,class,const,' +
   'super,throw,while,yield,delete,export,import,return,switch,default,' +

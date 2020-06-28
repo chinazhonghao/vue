@@ -47,7 +47,8 @@ var app = new Vue({
     todos: todoStorage.fetch(),
     newTodo: '',
     editedTodo: null,
-    visibility: 'all'
+    visibility: 'all',
+    _test: "Hello, world"
   },
   mixins: [mixins],
 
