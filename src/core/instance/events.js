@@ -19,12 +19,14 @@ export function initEvents (vm: Component) {
 }
 
 export function eventsMixin (Vue: Class<Component>) {
+  // $on指令代表向Vue对象的事件队列中添加相应的事件处理函数
   Vue.prototype.$on = function (event: string, fn: Function): Component {
-    const vm: Component = this
+    const vm: Component = this // 如果是第一次添加事件回调函数，则将事件回调函数设置为数组
     ;(vm._events[event] || (vm._events[event] = [])).push(fn)
     return vm
   }
 
+  // $on, $off方法的组装
   Vue.prototype.$once = function (event: string, fn: Function): Component {
     const vm: Component = this
     function on () {
@@ -36,18 +38,20 @@ export function eventsMixin (Vue: Class<Component>) {
     return vm
   }
 
+  // JS重载函数的写法
   Vue.prototype.$off = function (event?: string, fn?: Function): Component {
     const vm: Component = this
-    // all
+    // all, 移除所有的事件监听函数队列，vm._events.__ptoto__ === null
     if (!arguments.length) {
       vm._events = Object.create(null)
       return vm
     }
-    // specific event
+    // specific event, 特定事件的回调函数队列
     const cbs = vm._events[event]
     if (!cbs) {
       return vm
     }
+    // 移除该事件的所有回调函数
     if (arguments.length === 1) {
       vm._events[event] = null
       return vm
@@ -69,6 +73,7 @@ export function eventsMixin (Vue: Class<Component>) {
     const vm: Component = this
     let cbs = vm._events[event]
     if (cbs) {
+      // cbs本来就是数组，使用toArray转换好像并没有什么意义
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
       const args = toArray(arguments, 1)
       for (let i = 0, l = cbs.length; i < l; i++) {

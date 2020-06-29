@@ -101,6 +101,7 @@ export function updateListeners (
       capture = name.charAt(0) === '!'
       event = capture ? name.slice(1) : name
       if (Array.isArray(cur)) {
+        // $on并不接受三个参数，这点有点奇怪啊???
         add(event, (cur.invoker = arrInvoker(cur)), capture)
       } else {
         if (!cur.invoker) {
@@ -130,10 +131,12 @@ export function updateListeners (
   }
 }
 
+// 数组里面的对象是函数，然后遍历调用
 function arrInvoker (arr: Array<Function>): Function {
   return function (ev) {
     const single = arguments.length === 1
     for (let i = 0; i < arr.length; i++) {
+      // 这里调用不设置this值
       single ? arr[i](ev) : arr[i].apply(null, arguments)
     }
   }

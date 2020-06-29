@@ -22,6 +22,7 @@ if (process.env.NODE_ENV !== 'production') {
     // 这里要代理has操作，in操作符的捕捉器，为什么要这么做呢？？
     // 在开发环境中进行代理，可以检测在render过程中使用关键字的情况
     // 这里其实有点bug,报错提示不明显，以_开头的自定义变量会返回false，导致浏览器报错【Uncaught ReferenceError: _test is not defined】
+    // 在执行with语句的过程中，该作用域下变量的访问都会触发has钩子，所以模板渲染时会触发代理拦截的原因
     has (target, key) {
       const has = key in target
       // key不在target中，has为false
