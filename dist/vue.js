@@ -507,12 +507,14 @@ var initProxy;
 
   proxyHandlers = {
     // 这里要代理has操作，in操作符的捕捉器，为什么要这么做呢？？
+    // 在开发环境中进行代理，可以检测在render过程中使用关键字的情况
     has: function has (target, key) {
       var has = key in target;
       // key不在target中，has为false
       // allowedGlobals允许的关键字，或者以"_"开始的关键字
       var isAllowed = allowedGlobals(key) || key.charAt(0) === '_';
       // key在target上，或者可以是上面定义的符号
+      // has为false并且isAllowed为false，会抛异常，（如果key不在target上，且不是被允许的属性，抛异常，这一块有点绕啊）
       if (!has && !isAllowed) {
         warn(
           "Property or method \"" + key + "\" is not defined on the instance but " +
@@ -521,6 +523,8 @@ var initProxy;
           target
         );
       }
+      // has为true，或者isAllowed为false，返回true
+      // key在target上，且不是关键字才会返回true
       return has || !isAllowed
     }
   };
@@ -2526,6 +2530,7 @@ function initMixin (Vue) {
       );
     }
     /* istanbul ignore else */
+    // 这里只是对render方法进行代理
     {
       initProxy(vm);
     }

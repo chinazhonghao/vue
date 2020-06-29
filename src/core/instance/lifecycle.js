@@ -8,7 +8,7 @@ import { resolveSlots } from './render'
 
 export let activeInstance: any = null
 
-// 这里就只是初始化一些属性，并没有相关的声明周期的调用
+// 这里就只是初始化一些属性，并没有相关的生命周期的调用
 export function initLifecycle (vm: Component) {
   // 取出用户输入的参数
   const options = vm.$options

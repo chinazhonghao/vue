@@ -38,6 +38,7 @@ export function initMixin (Vue: Class<Component>) {
       )
     }
     /* istanbul ignore else */
+    // 这里只是对render方法进行代理
     if (process.env.NODE_ENV !== 'production') {
       initProxy(vm)
     } else {
