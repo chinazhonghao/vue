@@ -508,6 +508,8 @@ var initProxy;
   proxyHandlers = {
     // 这里要代理has操作，in操作符的捕捉器，为什么要这么做呢？？
     // 在开发环境中进行代理，可以检测在render过程中使用关键字的情况
+    // 这里其实有点bug,报错提示不明显，以_开头的自定义变量会返回false，导致浏览器报错【Uncaught ReferenceError: _test is not defined】
+    // 在执行with语句的过程中，该作用域下变量的访问都会触发has钩子，所以模板渲染时会触发代理拦截的原因
     has: function has (target, key) {
       var has = key in target;
       // key不在target中，has为false
@@ -1576,6 +1578,9 @@ function updateListeners (
       capture = name.charAt(0) === '!';
       event = capture ? name.slice(1) : name;
       if (Array.isArray(cur)) {
+        // $on并不接受三个参数，这点有点奇怪啊???
+        // 回调函数是一个数组，通过arrInvoker生成一个函数进行调用
+        // 这里其实可以设置回调函数返回一个值，在链式处理回调函数的时候可以终止
         add(event, (cur.invoker = arrInvoker(cur)), capture);
       } else {
         if (!cur.invoker) {
@@ -1597,6 +1602,7 @@ function updateListeners (
       }
     }
   }
+  // 从old回调函数中移除响应的事件监听队列
   for (name in oldOn) {
     if (!on[name]) {
       event = name.charAt(0) === '!' ? name.slice(1) : name;
@@ -1605,17 +1611,20 @@ function updateListeners (
   }
 }
 
+// 数组里面的对象是函数，然后遍历调用
 function arrInvoker (arr) {
   return function (ev) {
     var arguments$1 = arguments;
 
     var single = arguments.length === 1;
     for (var i = 0; i < arr.length; i++) {
+      // 这里调用不设置this值
       single ? arr[i](ev) : arr[i].apply(null, arguments$1);
     }
   }
 }
 
+// 数组函数调用可以理解，这里单个函数为什么这么搞呢
 function fnInvoker (o) {
   return function (ev) {
     var single = arguments.length === 1;
@@ -1627,7 +1636,7 @@ function fnInvoker (o) {
 
 var activeInstance = null;
 
-// 这里就只是初始化一些属性，并没有相关的声明周期的调用
+// 这里就只是初始化一些属性，并没有相关的生命周期的调用
 function initLifecycle (vm) {
   // 取出用户输入的参数
   var options = vm.$options;
@@ -2438,11 +2447,13 @@ function initEvents (vm) {
 }
 
 function eventsMixin (Vue) {
+  // $on指令代表向Vue对象的事件队列中添加相应的事件处理函数
   Vue.prototype.$on = function (event, fn) {
     var vm = this;(vm._events[event] || (vm._events[event] = [])).push(fn);
     return vm
   };
 
+  // $on, $off方法的组装
   Vue.prototype.$once = function (event, fn) {
     var vm = this;
     function on () {
@@ -2454,18 +2465,20 @@ function eventsMixin (Vue) {
     return vm
   };
 
+  // JS重载函数的写法
   Vue.prototype.$off = function (event, fn) {
     var vm = this;
-    // all
+    // all, 移除所有的事件监听函数队列，vm._events.__ptoto__ === null
     if (!arguments.length) {
       vm._events = Object.create(null);
       return vm
     }
-    // specific event
+    // specific event, 特定事件的回调函数队列
     var cbs = vm._events[event];
     if (!cbs) {
       return vm
     }
+    // 移除该事件的所有回调函数
     if (arguments.length === 1) {
       vm._events[event] = null;
       return vm
@@ -2483,10 +2496,12 @@ function eventsMixin (Vue) {
     return vm
   };
 
+  // 都是在同一个this对象上的话，如何区分同样的监听事件的不同回调函数呢？？
   Vue.prototype.$emit = function (event) {
     var vm = this;
     var cbs = vm._events[event];
     if (cbs) {
+      // cbs本来就是数组，使用toArray转换好像并没有什么意义
       cbs = cbs.length > 1 ? toArray(cbs) : cbs;
       var args = toArray(arguments, 1);
       for (var i = 0, l = cbs.length; i < l; i++) {

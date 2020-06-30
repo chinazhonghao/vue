@@ -48,7 +48,7 @@ var app = new Vue({
     newTodo: '',
     editedTodo: null,
     visibility: 'all',
-    _test: "Hello, world"
+    //_test: "Hello, world"
   },
   mixins: [mixins],
 
@@ -167,3 +167,5 @@ onHashChange()
 
 // mount
 app.$mount('.todoapp')
+
+console.log(app);

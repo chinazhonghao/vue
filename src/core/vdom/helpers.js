@@ -81,6 +81,7 @@ export function mergeVNodeHook (def: Object, key: string, hook: Function) {
   }
 }
 
+// 作为一个基础方法，对于DOM事件有updateDOMListeners这个函数
 export function updateListeners (
   on: Object,
   oldOn: Object,
@@ -102,6 +103,8 @@ export function updateListeners (
       event = capture ? name.slice(1) : name
       if (Array.isArray(cur)) {
         // $on并不接受三个参数，这点有点奇怪啊???
+        // 回调函数是一个数组，通过arrInvoker生成一个函数进行调用
+        // 这里其实可以设置回调函数返回一个值，在链式处理回调函数的时候可以终止
         add(event, (cur.invoker = arrInvoker(cur)), capture)
       } else {
         if (!cur.invoker) {
@@ -123,6 +126,7 @@ export function updateListeners (
       }
     }
   }
+  // 从old回调函数中移除响应的事件监听队列
   for (name in oldOn) {
     if (!on[name]) {
       event = name.charAt(0) === '!' ? name.slice(1) : name
@@ -142,6 +146,7 @@ function arrInvoker (arr: Array<Function>): Function {
   }
 }
 
+// 数组函数调用可以理解，这里单个函数为什么这么搞呢
 function fnInvoker (o: { fn: Function }): Function {
   return function (ev) {
     const single = arguments.length === 1

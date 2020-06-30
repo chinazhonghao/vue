@@ -3,6 +3,7 @@
 
 import { updateListeners } from 'core/vdom/helpers'
 
+// DOM上的事件存储在DOM本身上，这个与jQuery处理是相同的
 function updateDOMListeners (oldVnode, vnode) {
   if (!oldVnode.data.on && !vnode.data.on) {
     return

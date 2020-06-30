@@ -69,6 +69,7 @@ export function eventsMixin (Vue: Class<Component>) {
     return vm
   }
 
+  // 都是在同一个this对象上的话，如何区分同样的监听事件的不同回调函数呢？？
   Vue.prototype.$emit = function (event: string): Component {
     const vm: Component = this
     let cbs = vm._events[event]
