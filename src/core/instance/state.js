@@ -179,6 +179,7 @@ function createWatcher (vm: Component, key: string, handler: any) {
   vm.$watch(key, handler, options)
 }
 
+// flow 和 Object.defineProperty有冲突？
 export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -196,6 +197,7 @@ export function stateMixin (Vue: Class<Component>) {
       )
     }
   }
+  // 在Vue原型上定义$data属性
   Object.defineProperty(Vue.prototype, '$data', dataDef)
 
   Vue.prototype.$set = set

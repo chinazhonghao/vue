@@ -12,6 +12,7 @@ import {
   warn
 } from '../util/index'
 
+// 获取对象上本身具有的属性
 const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
 
 /**
@@ -40,11 +41,15 @@ export class Observer {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
+    // lang.js中定义：(obj: Object, key: string, val: any, enumerable?: boolean)
+    // value 是观察对象，这样写是不是命名上是不是不太清楚？？为什么要定义个__ob__属性，值为this呢？？
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
+      // hasProto 测试{}上是否有__proto__属性
       const augment = hasProto
         ? protoAugment
         : copyAugment
+      // 如果观察的对象时数组的话，将定义的数组方法赋值到对象上，或者定义到value的__proto__属性上（直接定义到__proto__上，是不是有覆盖的风险？？）
       augment(value, arrayMethods, arrayKeys)
       this.observeArray(value)
     } else {
@@ -82,6 +87,7 @@ export class Observer {
  */
 function protoAugment (target, src: Object) {
   /* eslint-disable no-proto */
+  // 会不会有覆盖原型的风险
   target.__proto__ = src
   /* eslint-enable no-proto */
 }

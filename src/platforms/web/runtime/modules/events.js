@@ -8,6 +8,8 @@ function updateDOMListeners (oldVnode, vnode) {
   if (!oldVnode.data.on && !vnode.data.on) {
     return
   }
+  // DOM事件存储在data.on，每个DOM上的监听事件，例如v-click, 
+  // directives也存储在vnode的data上， 每个DOM上的指令，例如v-show这种
   const on = vnode.data.on || {}
   const oldOn = oldVnode.data.on || {}
   const add = vnode.elm._v_add || (vnode.elm._v_add = (event, handler, capture) => {
