@@ -28,11 +28,16 @@ export const arrayMethods = Object.create(arrayProto)
   def(arrayMethods, method, function mutator () {
     // avoid leaking arguments:
     // http://jsperf.com/closure-with-arguments
+    // 直接使用arguments存在内容泄漏和V8引擎进行优化的问题，参考：
+    // https://stackoverflow.com/questions/30234908/javascript-v8-optimisation-and-leaking-arguments
+    // https://github.com/nodejs/node/pull/4361
+    // 主要是直接传递arguments给下一个函数会存在问题：original.apply的传递过程
     let i = arguments.length
     const args = new Array(i)
     while (i--) {
       args[i] = arguments[i]
     }
+    // 封装的新的数组方法，首先调用原生的数组方法
     const result = original.apply(this, args)
     const ob = this.__ob__
     let inserted
@@ -44,6 +49,7 @@ export const arrayMethods = Object.create(arrayProto)
         inserted = args
         break
       case 'splice':
+        // 从索引2开始拷贝
         inserted = args.slice(2)
         break
     }

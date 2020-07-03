@@ -33,7 +33,9 @@ export const observerState = {
  * collect dependencies and dispatches updates.
  */
 export class Observer {
+  // 被观察对象
   value: any;
+  // 观察者
   dep: Dep;
   vmCount: number; // number of vms that has this object as root $data
 
@@ -43,6 +45,7 @@ export class Observer {
     this.vmCount = 0
     // lang.js中定义：(obj: Object, key: string, val: any, enumerable?: boolean)
     // value 是观察对象，这样写是不是命名上是不是不太清楚？？为什么要定义个__ob__属性，值为this呢？？
+    // 这个this是VUE实例还是这个数组属性对象呢？？
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
       // hasProto 测试{}上是否有__proto__属性
