@@ -207,6 +207,7 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
+// 这里的set和this.$set作用是一样的吗？？
 export function set (obj: Array<any> | Object, key: any, val: any) {
   if (Array.isArray(obj)) {
     // 删除一个元素，同时在该位置上添加一个元素val
@@ -218,6 +219,7 @@ export function set (obj: Array<any> | Object, key: any, val: any) {
     return
   }
   const ob = obj.__ob__
+  // 不允许在Vue实例本身上通过该函数设置响应式属性
   if (obj._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +

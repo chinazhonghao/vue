@@ -16,6 +16,7 @@
     "types/vue.d.ts"
   ],
   "scripts": {
+    "win": "set TARGET=web-standalone-dev&rollup -w -c build/config.js",
     "dev": "TARGET=web-standalone-dev rollup -w -c build/config.js",
     "dev:runtime": "TARGET=web-runtime-dev rollup -w -c build/config.js",
     "dev:test": "karma start build/karma.dev.config.js",

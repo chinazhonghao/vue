@@ -934,6 +934,7 @@ function traverse (val, seen) {
  */
 
 var arrayProto = Array.prototype;
+// 继承arrayProto，在后续对象上继续定义新方法，避免后续直接在数组对象上覆盖__proto__对象时出现问题
 var arrayMethods = Object.create(arrayProto);[
   'push',
   'pop',
@@ -946,18 +947,25 @@ var arrayMethods = Object.create(arrayProto);[
 .forEach(function (method) {
   // cache original method
   var original = arrayProto[method];
+  // 在arrayMethods对象上定义method属性，也就是增加新的方法
   def(arrayMethods, method, function mutator () {
     var arguments$1 = arguments;
 
     // avoid leaking arguments:
     // http://jsperf.com/closure-with-arguments
+    // 直接使用arguments存在内容泄漏和V8引擎进行优化的问题，参考：
+    // https://stackoverflow.com/questions/30234908/javascript-v8-optimisation-and-leaking-arguments
+    // https://github.com/nodejs/node/pull/4361
+    // 主要是直接传递arguments给下一个函数会存在问题：original.apply的传递过程
     var i = arguments.length;
     var args = new Array(i);
     while (i--) {
       args[i] = arguments$1[i];
     }
+    // 封装的新的数组方法，首先调用原生的数组方法
     var result = original.apply(this, args);
     var ob = this.__ob__;
+    // 为什么这里要对参数进行选择和观察呢？？
     var inserted;
     switch (method) {
       case 'push':
@@ -967,6 +975,7 @@ var arrayMethods = Object.create(arrayProto);[
         inserted = args;
         break
       case 'splice':
+        // 从索引2开始拷贝
         inserted = args.slice(2);
         break
     }
@@ -979,6 +988,8 @@ var arrayMethods = Object.create(arrayProto);[
 
 /*  */
 
+// 从array中导入改造后的数组方法，用来监听数组的变化
+// 获取对象上本身具有的属性
 var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
 /**
@@ -1002,12 +1013,19 @@ var Observer = function Observer (value) {
   this.value = value;
   this.dep = new Dep();
   this.vmCount = 0;
+  // lang.js中定义：(obj: Object, key: string, val: any, enumerable?: boolean)
+  // value 是观察对象，这样写是不是命名上是不是不太清楚？？为什么要定义个__ob__属性，值为this呢？？
+  // 这个this是VUE实例还是这个数组属性对象呢？？
+  // this上有value, dep等属性
   def(value, '__ob__', this);
   if (Array.isArray(value)) {
+    // hasProto 测试{}上是否有__proto__属性
     var augment = hasProto
       ? protoAugment
       : copyAugment;
+    // 如果观察的对象时数组的话，将定义的数组方法赋值到对象上，或者定义到value的__proto__属性上（直接定义到__proto__上，是不是有覆盖的风险？？）
     augment(value, arrayMethods, arrayKeys);
+    // 如果对象是数组，则递归进行数组内容进行观察
     this.observeArray(value);
   } else {
     this.walk(value);
@@ -1021,6 +1039,7 @@ var Observer = function Observer (value) {
  */
 Observer.prototype.walk = function walk (obj) {
   var keys = Object.keys(obj);
+  // 对对象上的每一个属性进行遍历，定义响应式
   for (var i = 0; i < keys.length; i++) {
     defineReactive$$1(obj, keys[i], obj[keys[i]]);
   }
@@ -1043,6 +1062,7 @@ Observer.prototype.observeArray = function observeArray (items) {
  */
 function protoAugment (target, src) {
   /* eslint-disable no-proto */
+  // 会不会有覆盖原型的风险
   target.__proto__ = src;
   /* eslint-enable no-proto */
 }
@@ -1077,7 +1097,7 @@ function observe (value) {
     !config._isServer &&
     (Array.isArray(value) || isPlainObject(value)) &&
     Object.isExtensible(value) &&
-    !value._isVue
+    !value._isVue // 对vue本身的过滤
   ) {
     ob = new Observer(value);
   }
@@ -1095,6 +1115,7 @@ function defineReactive$$1 (
 ) {
   var dep = new Dep();
 
+  // Object.defineProperty中要用到的属性描述符
   var property = Object.getOwnPropertyDescriptor(obj, key);
   if (property && property.configurable === false) {
     return
@@ -1104,6 +1125,7 @@ function defineReactive$$1 (
   var getter = property && property.get;
   var setter = property && property.set;
 
+  // 将对象上的属性值包装成observe对象
   var childOb = observe(val);
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -1111,11 +1133,13 @@ function defineReactive$$1 (
     get: function reactiveGetter () {
       var value = getter ? getter.call(obj) : val;
       if (Dep.target) {
+        // 依赖收集 dependency
         dep.depend();
         if (childOb) {
           childOb.dep.depend();
         }
         if (Array.isArray(value)) {
+          // 只收集到数组中的值，不再往下进行递归收集了？？
           for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
             e = value[i];
             e && e.__ob__ && e.__ob__.dep.depend();
@@ -1130,6 +1154,7 @@ function defineReactive$$1 (
         return
       }
       if ("development" !== 'production' && customSetter) {
+        // 进行调试使用？？
         customSetter();
       }
       if (setter) {
@@ -1137,7 +1162,9 @@ function defineReactive$$1 (
       } else {
         val = newVal;
       }
+      // 每一次都重新观察新值的子属性
       childOb = observe(newVal);
+      // 依赖通知
       dep.notify();
     }
   });
@@ -1148,8 +1175,10 @@ function defineReactive$$1 (
  * triggers change notification if the property doesn't
  * already exist.
  */
+// 这里的set和this.$set作用是一样的吗？？
 function set (obj, key, val) {
   if (Array.isArray(obj)) {
+    // 删除一个元素，同时在该位置上添加一个元素val
     obj.splice(key, 1, val);
     return val
   }
@@ -1158,6 +1187,7 @@ function set (obj, key, val) {
     return
   }
   var ob = obj.__ob__;
+  // 不允许在Vue实例本身上通过该函数设置响应式属性
   if (obj._isVue || (ob && ob.vmCount)) {
     "development" !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -1165,8 +1195,11 @@ function set (obj, key, val) {
     );
     return
   }
+  // __ob__属性是在new Observe中定义的，没有这个属性代表不是可观察对象
   if (!ob) {
     obj[key] = val;
+    // 这里直接就返回了？？为什么不用定义响应式呢
+    // 在一个可观察对象上定义新的属性：如果不是Observe对象，这里也就不用定义响应式了
     return
   }
   defineReactive$$1(ob.value, key, val);
@@ -1356,6 +1389,7 @@ function createWatcher (vm, key, handler) {
   vm.$watch(key, handler, options);
 }
 
+// flow 和 Object.defineProperty有冲突？
 function stateMixin (Vue) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -1373,6 +1407,7 @@ function stateMixin (Vue) {
       );
     };
   }
+  // 在Vue原型上定义$data属性
   Object.defineProperty(Vue.prototype, '$data', dataDef);
 
   Vue.prototype.$set = set;
@@ -1558,6 +1593,7 @@ function mergeVNodeHook (def$$1, key, hook) {
   }
 }
 
+// 作为一个基础方法，对于DOM事件有updateDOMListeners这个函数
 function updateListeners (
   on,
   oldOn,
@@ -2529,6 +2565,7 @@ function initMixin (Vue) {
     // a uid
     vm._uid = uid++;
     // a flag to avoid this being observed
+    // 通过这个属性来判断是否是vue实例，为什么不通过proto进行判断呢？？性能考虑吗
     vm._isVue = true;
     // merge options
     // 将new Vue({})时传入的参数挂载到实例的$options属性上
@@ -2608,6 +2645,7 @@ function Vue$3 (options) {
   this._init(options);
 }
 
+// 在原型上定义_init方法
 initMixin(Vue$3);
 stateMixin(Vue$3);
 eventsMixin(Vue$3);
@@ -4448,10 +4486,13 @@ var klass = {
 // skip type checking this file because we need to attach private properties
 // to elements
 
+// DOM上的事件存储在DOM本身上，这个与jQuery处理是相同的
 function updateDOMListeners (oldVnode, vnode) {
   if (!oldVnode.data.on && !vnode.data.on) {
     return
   }
+  // DOM事件存储在data.on，每个DOM上的监听事件，例如v-click, 
+  // directives也存储在vnode的data上， 每个DOM上的指令，例如v-show这种
   var on = vnode.data.on || {};
   var oldOn = oldVnode.data.on || {};
   var add = vnode.elm._v_add || (vnode.elm._v_add = function (event, handler, capture) {
