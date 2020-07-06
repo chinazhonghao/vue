@@ -22,6 +22,7 @@ export function initMixin (Vue: Class<Component>) {
     // a uid
     vm._uid = uid++
     // a flag to avoid this being observed
+    // 通过这个属性来判断是否是vue实例，为什么不通过proto进行判断呢？？性能考虑吗
     vm._isVue = true
     // merge options
     // 将new Vue({})时传入的参数挂载到实例的$options属性上

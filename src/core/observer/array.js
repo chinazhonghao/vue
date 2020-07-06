@@ -12,6 +12,7 @@ export const arrayMethods = Object.create(arrayProto)
 /**
  * Intercept mutating methods and emit events
  */
+// 在原先数组的方法基础上，重新定义7个方法
 ;[
   'push',
   'pop',
@@ -40,6 +41,7 @@ export const arrayMethods = Object.create(arrayProto)
     // 封装的新的数组方法，首先调用原生的数组方法
     const result = original.apply(this, args)
     const ob = this.__ob__
+    // 为什么这里要对参数进行选择和观察呢？？
     let inserted
     switch (method) {
       case 'push':

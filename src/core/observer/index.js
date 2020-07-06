@@ -2,6 +2,7 @@
 
 import config from '../config'
 import Dep from './dep'
+// 从array中导入改造后的数组方法，用来监听数组的变化
 import { arrayMethods } from './array'
 import {
   def,
@@ -46,6 +47,7 @@ export class Observer {
     // lang.js中定义：(obj: Object, key: string, val: any, enumerable?: boolean)
     // value 是观察对象，这样写是不是命名上是不是不太清楚？？为什么要定义个__ob__属性，值为this呢？？
     // 这个this是VUE实例还是这个数组属性对象呢？？
+    // this上有value, dep等属性
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
       // hasProto 测试{}上是否有__proto__属性
@@ -54,6 +56,7 @@ export class Observer {
         : copyAugment
       // 如果观察的对象时数组的话，将定义的数组方法赋值到对象上，或者定义到value的__proto__属性上（直接定义到__proto__上，是不是有覆盖的风险？？）
       augment(value, arrayMethods, arrayKeys)
+      // 如果对象是数组，则递归进行数组内容进行观察
       this.observeArray(value)
     } else {
       this.walk(value)
@@ -67,6 +70,7 @@ export class Observer {
    */
   walk (obj: Object) {
     const keys = Object.keys(obj)
+    // 对对象上的每一个属性进行遍历，定义响应式
     for (let i = 0; i < keys.length; i++) {
       defineReactive(obj, keys[i], obj[keys[i]])
     }
@@ -125,7 +129,7 @@ export function observe (value: any): Observer | void {
     !config._isServer &&
     (Array.isArray(value) || isPlainObject(value)) &&
     Object.isExtensible(value) &&
-    !value._isVue
+    !value._isVue // 对vue本身的过滤
   ) {
     ob = new Observer(value)
   }
@@ -143,6 +147,7 @@ export function defineReactive (
 ) {
   const dep = new Dep()
 
+  // Object.defineProperty中要用到的属性描述符
   const property = Object.getOwnPropertyDescriptor(obj, key)
   if (property && property.configurable === false) {
     return
@@ -152,6 +157,7 @@ export function defineReactive (
   const getter = property && property.get
   const setter = property && property.set
 
+  // 将对象上的属性值包装成observe对象
   let childOb = observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -159,11 +165,13 @@ export function defineReactive (
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
+        // 依赖收集 dependency
         dep.depend()
         if (childOb) {
           childOb.dep.depend()
         }
         if (Array.isArray(value)) {
+          // 只收集到数组中的值，不再往下进行递归收集了？？
           for (let e, i = 0, l = value.length; i < l; i++) {
             e = value[i]
             e && e.__ob__ && e.__ob__.dep.depend()
@@ -178,6 +186,7 @@ export function defineReactive (
         return
       }
       if (process.env.NODE_ENV !== 'production' && customSetter) {
+        // 进行调试使用？？
         customSetter()
       }
       if (setter) {
@@ -185,7 +194,9 @@ export function defineReactive (
       } else {
         val = newVal
       }
+      // 每一次都重新观察新值的子属性
       childOb = observe(newVal)
+      // 依赖通知
       dep.notify()
     }
   })
@@ -198,6 +209,7 @@ export function defineReactive (
  */
 export function set (obj: Array<any> | Object, key: any, val: any) {
   if (Array.isArray(obj)) {
+    // 删除一个元素，同时在该位置上添加一个元素val
     obj.splice(key, 1, val)
     return val
   }
@@ -213,8 +225,11 @@ export function set (obj: Array<any> | Object, key: any, val: any) {
     )
     return
   }
+  // __ob__属性是在new Observe中定义的，没有这个属性代表不是可观察对象
   if (!ob) {
     obj[key] = val
+    // 这里直接就返回了？？为什么不用定义响应式呢
+    // 在一个可观察对象上定义新的属性：如果不是Observe对象，这里也就不用定义响应式了
     return
   }
   defineReactive(ob.value, key, val)
