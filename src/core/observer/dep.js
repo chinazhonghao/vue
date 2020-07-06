@@ -15,6 +15,7 @@ export default class Dep {
   subs: Array<Watcher>;
 
   constructor () {
+    // 单线程，可以这么搞
     this.id = uid++
     this.subs = []
   }
@@ -48,11 +49,13 @@ export default class Dep {
 Dep.target = null
 const targetStack = []
 
+// 将上一个target入栈，然后将当前target指向新的Watcher对象
 export function pushTarget (_target: Watcher) {
   if (Dep.target) targetStack.push(Dep.target)
   Dep.target = _target
 }
 
+// 还原上一次的Watcher对象
 export function popTarget () {
   Dep.target = targetStack.pop()
 }

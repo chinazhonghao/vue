@@ -36,6 +36,7 @@ export default class Watcher {
   getter: Function;
   value: any;
 
+  // 构造函数要传入vm对象，Vue实例
   constructor (
     vm: Component,
     expOrFn: string | Function,
@@ -73,6 +74,7 @@ export default class Watcher {
         )
       }
     }
+    // 这里的value是什么？？，为什么要传入一个getter函数
     this.value = this.lazy
       ? undefined
       : this.get()
@@ -81,12 +83,16 @@ export default class Watcher {
   /**
    * Evaluate the getter, and re-collect dependencies.
    */
+  // 为什么要重新收集dependency呢？？
   get () {
+    // 设置Dep.target为当前对象
     pushTarget(this)
     const value = this.getter.call(this.vm, this.vm)
     // "touch" every property so they are all tracked as
     // dependencies for deep watching
+    // 传入deep参数
     if (this.deep) {
+      // 这个遍历并没有改变什么，不知道有什么用意？？
       traverse(value)
     }
     popTarget()
@@ -247,6 +253,7 @@ function traverse (val: any, seen?: Set) {
         seen.add(depId)
       }
     }
+    // 根据对象是数组或者是对象，进行递归调用，对其中的每个元素进行观察
     if (isA) {
       i = val.length
       while (i--) traverse(val[i], seen)

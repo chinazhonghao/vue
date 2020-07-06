@@ -122,6 +122,7 @@ export function observe (value: any): Observer | void {
     return
   }
   let ob: Observer | void
+  // __ob__属性上的值就是Observer对象
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
@@ -139,6 +140,9 @@ export function observe (value: any): Observer | void {
 /**
  * Define a reactive property on an Object.
  */
+// 定义对象上的某个属性的setter和getter函数
+// 1. getter时候进行依赖收集
+// 2. setter时候进行变化通知
 export function defineReactive (
   obj: Object,
   key: string,
@@ -157,7 +161,7 @@ export function defineReactive (
   const getter = property && property.get
   const setter = property && property.set
 
-  // 将对象上的属性值包装成observe对象
+  // 当属性值时对象时，将该属性值包装成observe对象
   let childOb = observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -219,7 +223,8 @@ export function set (obj: Array<any> | Object, key: any, val: any) {
     return
   }
   const ob = obj.__ob__
-  // 不允许在Vue实例本身上通过该函数设置响应式属性
+  // 1. 不允许在Vue实例本身上通过该函数设置响应式属性, 在Vue实例上定义可响应式属性需要通过传入的data选项进行定义
+  // 2. 如果是一个可观察对象，但是可观察对象的vmCount > 0, 也会进行报错
   if (obj._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
