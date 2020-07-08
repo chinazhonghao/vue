@@ -12,6 +12,7 @@ let uid = 0
 export default class Dep {
   static target: ?Watcher;
   id: number;
+  // 观察某个状态的Watcher数组
   subs: Array<Watcher>;
 
   constructor () {
@@ -20,6 +21,8 @@ export default class Dep {
     this.subs = []
   }
 
+  // 为什么这里不直接把Dep.target加进来呢？反而是通过这种调用的方式
+  // 是因为加入的时候有重复问题？？需要对加入的Dep进行过滤一下（使用Dep.id属性）
   addSub (sub: Watcher) {
     this.subs.push(sub)
   }
@@ -28,6 +31,7 @@ export default class Dep {
     remove(this.subs, sub)
   }
 
+  // 检测Dep.target是否满足一系列的规则，然后将其添加到subs中
   depend () {
     if (Dep.target) {
       Dep.target.addDep(this)

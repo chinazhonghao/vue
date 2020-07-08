@@ -32,6 +32,7 @@ export function parsePath (path: string): any {
     return function (obj) {
       for (let i = 0; i < segments.length; i++) {
         if (!obj) return
+        // 对象一步一步引用
         obj = obj[segments[i]]
       }
       return obj

@@ -38,17 +38,22 @@ export class Observer {
   value: any;
   // 观察者
   dep: Dep;
+  // 只有作为根才会有这个计数？？
   vmCount: number; // number of vms that has this object as root $data
 
   constructor (value: any) {
+    // Observer上的value属性值为当前对象本身
     this.value = value
+    // 每个Observer对象内含一个Dep对象
     this.dep = new Dep()
     this.vmCount = 0
     // lang.js中定义：(obj: Object, key: string, val: any, enumerable?: boolean)
     // value 是观察对象，这样写是不是命名上是不是不太清楚？？为什么要定义个__ob__属性，值为this呢？？
     // 这个this是VUE实例还是这个数组属性对象呢？？
     // this上有value, dep等属性
+    // value为传入的对象，在传入的对象上定义一个__ob__属性，该属性值为该属性的Observer对象
     def(value, '__ob__', this)
+    // 遍历对象，对对象的属性使用object.defineProperty定义setter和getter函数
     if (Array.isArray(value)) {
       // hasProto 测试{}上是否有__proto__属性
       const augment = hasProto
@@ -118,6 +123,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * or the existing observer if the value already has one.
  */
 export function observe (value: any): Observer | void {
+  // 只有是对象才会创建observe对象
   if (!isObject(value)) {
     return
   }
@@ -149,6 +155,7 @@ export function defineReactive (
   val: any,
   customSetter?: Function
 ) {
+  // 每个对象已经有一个dep了，这里为什么还会有dep呢？？
   const dep = new Dep()
 
   // Object.defineProperty中要用到的属性描述符
@@ -170,6 +177,7 @@ export function defineReactive (
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
         // 依赖收集 dependency
+        // 父收集，子元素也进行收集？？对象有dep,属性也有自己的dep依赖收集
         dep.depend()
         if (childOb) {
           childOb.dep.depend()

@@ -41,6 +41,7 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  // watcher的id是有一定规律的
   queue.sort((a, b) => a.id - b.id)
 
   // do not cache length because more watchers might be pushed
@@ -48,10 +49,12 @@ function flushSchedulerQueue () {
   for (index = 0; index < queue.length; index++) {
     const watcher = queue[index]
     const id = watcher.id
+    // 把watcher取出来之后，标志位清空
     has[id] = null
     watcher.run()
     // in dev build, check and stop circular updates.
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
+      // 观察者的循环检测
       circular[id] = (circular[id] || 0) + 1
       if (circular[id] > config._maxUpdateCount) {
         warn(
@@ -90,10 +93,12 @@ export function queueWatcher (watcher: Watcher) {
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      // 为什么要根据id来进行查找呢？？
       let i = queue.length - 1
       while (i >= 0 && queue[i].id > watcher.id) {
         i--
       }
+      // start, deletedCount(0：不删除元素)，watcher要添加进数组的元素从start位置开始
       queue.splice(Math.max(i, index) + 1, 0, watcher)
     }
     // queue the flush
