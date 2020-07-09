@@ -19,9 +19,11 @@ export function validateProp (
 ): any {
   const prop = propOptions[key]
   const absent = !hasOwn(propsData, key)
+  // 在传入参数时，可以通过定义propsData来设置props的默认值
   let value = propsData[key]
   // handle boolean props
   if (getType(prop.type) === 'Boolean') {
+    // 如果props属性没有设置默认值，且没有提供propsData来设置默认值，这里会设置默认值
     if (absent && !hasOwn(prop, 'default')) {
       value = false
     } else if (value === '' || value === hyphenate(key)) {
@@ -34,7 +36,8 @@ export function validateProp (
     // since the default value is a fresh copy,
     // make sure to observe it.
     const prevShouldConvert = observerState.shouldConvert
-    observerState.shouldConvert = true
+    observerState.shouldConvert = true // 这里每一个prop不是都要进行观察了吗？？
+    // 将props的值变成可观察的对象
     observe(value)
     observerState.shouldConvert = prevShouldConvert
   }
@@ -47,6 +50,7 @@ export function validateProp (
 /**
  * Get the default value of a prop.
  */
+// 解析props的default属性，来获取默认值
 function getPropDefaultValue (vm: ?Component, prop: PropOptions, name: string): any {
   // no default, return undefined
   if (!hasOwn(prop, 'default')) {
@@ -78,6 +82,7 @@ function assertProp (
   vm: ?Component,
   absent: boolean
 ) {
+  // props设置了required属性，则需要提供propsData，这个是由父组件提供的？？  
   if (prop.required && absent) {
     warn(
       'Missing required prop: "' + name + '"',
@@ -110,6 +115,7 @@ function assertProp (
     )
     return
   }
+  // props可以设置validator属性，对传入的属性值进行校验
   const validator = prop.validator
   if (validator) {
     if (!validator(value)) {

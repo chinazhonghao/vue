@@ -37,11 +37,13 @@ function initProps (vm: Component) {
     const keys = vm.$options._propKeys = Object.keys(props)
     const isRoot = !vm.$parent
     // root instance props should be converted
+    // 非根Vue则对props不进行转换
     observerState.shouldConvert = isRoot
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
       /* istanbul ignore else */
       if (process.env.NODE_ENV !== 'production') {
+        // vm, key, val, customerSetter,开发环境时定义了customerSetter，在设置props的属性值时进行报错
         defineReactive(vm, key, validateProp(key, props, propsData, vm), () => {
           if (vm.$parent && !observerState.isSettingProps) {
             warn(
@@ -133,16 +135,17 @@ function initComputed (vm: Component) {
         computedSharedDefinition.get = makeComputedGetter(userDef, vm)
         computedSharedDefinition.set = noop
       } else {
-        // 计算属性还可以是对象，其中get属性值时一个函数
+        // 计算属性还可以是对象，其中get属性值是一个函数：{get:XXX, set:XXX, cache:true/false}
         computedSharedDefinition.get = userDef.get
           ? userDef.cache !== false
             ? makeComputedGetter(userDef.get, vm)
-            : bind(userDef.get, vm)
+            : bind(userDef.get, vm) // 这里只是bind不创建watcher了？？
           : noop
         computedSharedDefinition.set = userDef.set
           ? bind(userDef.set, vm)
           : noop
       }
+      // 在vm是定义计算属性，值为一个对象，对象中有get，set函数等
       Object.defineProperty(vm, key, computedSharedDefinition)
     }
   }
@@ -158,9 +161,11 @@ function makeComputedGetter (getter: Function, owner: Component): Function {
     // dirty属性值和lazy属性是一样，所以刚开始时会触发evaluate
     if (watcher.dirty) {
       // 主动调用watcher的get函数，进行依赖收集和属性值的计算
+      // 在调用computed函数时，就会触发其所依赖的Observer的getter函数，然后就可以进行依赖收集
       watcher.evaluate()
     }
     if (Dep.target) {
+      // 第一次调用computed属性时，会触发依赖收集，对于每一个被依赖的Observer都会进行收集，因此依赖的每一个Observer有所改变时都会触发computed的改变
       watcher.depend()
     }
     return watcher.value
@@ -172,6 +177,7 @@ function initMethods (vm: Component) {
   if (methods) {
     for (const key in methods) {
       if (methods[key] != null) {
+        // 定义的method都bind了当前的vm，可以直接使用this
         vm[key] = bind(methods[key], vm)
       } else if (process.env.NODE_ENV !== 'production') {
         warn(`Method "${key}" is undefined in options.`, vm)
@@ -180,6 +186,7 @@ function initMethods (vm: Component) {
   }
 }
 
+// watch如何观察状态的变更呢？{state: function(){}}
 function initWatch (vm: Component) {
   const watch = vm.$options.watch
   if (watch) {

@@ -152,6 +152,7 @@ export default class Watcher {
    */
   update () {
     /* istanbul ignore else */
+    // 计算属性的这个属性为true，通过设置dirty属性控制在获取计算属性时主动触发get函数
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {

@@ -132,6 +132,7 @@ export function observe (value: any): Observer | void {
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
+    // 这里用到了全局的转化控制标志位
     observerState.shouldConvert &&
     !config._isServer &&
     (Array.isArray(value) || isPlainObject(value)) &&
@@ -175,6 +176,7 @@ export function defineReactive (
     configurable: true,
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
+      // 在普通函数进行调用时，这个地方为假就不会进行依赖收集
       if (Dep.target) {
         // 依赖收集 dependency
         // 父收集，子元素也进行收集？？对象有dep,属性也有自己的dep依赖收集
