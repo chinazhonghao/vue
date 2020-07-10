@@ -12,6 +12,7 @@ export const arrayMethods = Object.create(arrayProto)
 /**
  * Intercept mutating methods and emit events
  */
+// 在原先数组的方法基础上，重新定义7个方法
 ;[
   'push',
   'pop',
@@ -39,7 +40,9 @@ export const arrayMethods = Object.create(arrayProto)
     }
     // 封装的新的数组方法，首先调用原生的数组方法
     const result = original.apply(this, args)
+    // 每一个对象都会包装成Observer对象，对其属性使用Object.defineProperty定义getter和setter函数
     const ob = this.__ob__
+    // 为什么这里要对参数进行选择和观察呢？？--重新观察新插入数据的部分，这样不用遍历全部的数组部分
     let inserted
     switch (method) {
       case 'push':
@@ -49,7 +52,7 @@ export const arrayMethods = Object.create(arrayProto)
         inserted = args
         break
       case 'splice':
-        // 从索引2开始拷贝
+        // 从索引2开始拷贝--splice的参数：startIndex, deleteCount, newValue... 所以从索引2开始复制
         inserted = args.slice(2)
         break
     }

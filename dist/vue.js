@@ -357,6 +357,7 @@ function parsePath (path) {
     return function (obj) {
       for (var i = 0; i < segments.length; i++) {
         if (!obj) { return }
+        // 对象一步一步引用
         obj = obj[segments[i]];
       }
       return obj
@@ -550,10 +551,13 @@ var uid$2 = 0;
  * directives subscribing to it.
  */
 var Dep = function Dep () {
+  // 单线程，可以这么搞
   this.id = uid$2++;
   this.subs = [];
 };
 
+// 为什么这里不直接把Dep.target加进来呢？反而是通过这种调用的方式
+// 是因为加入的时候有重复问题？？需要对加入的Dep进行过滤一下（使用Dep.id属性）
 Dep.prototype.addSub = function addSub (sub) {
   this.subs.push(sub);
 };
@@ -562,6 +566,7 @@ Dep.prototype.removeSub = function removeSub (sub) {
   remove$1(this.subs, sub);
 };
 
+// 检测Dep.target是否满足一系列的规则，然后将其添加到subs中
 Dep.prototype.depend = function depend () {
   if (Dep.target) {
     Dep.target.addDep(this);
@@ -582,11 +587,13 @@ Dep.prototype.notify = function notify () {
 Dep.target = null;
 var targetStack = [];
 
+// 将上一个target入栈，然后将当前target指向新的Watcher对象
 function pushTarget (_target) {
   if (Dep.target) { targetStack.push(Dep.target); }
   Dep.target = _target;
 }
 
+// 还原上一次的Watcher对象
 function popTarget () {
   Dep.target = targetStack.pop();
 }
@@ -627,6 +634,7 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  // watcher的id是有一定规律的
   queue.sort(function (a, b) { return a.id - b.id; });
 
   // do not cache length because more watchers might be pushed
@@ -634,10 +642,12 @@ function flushSchedulerQueue () {
   for (index = 0; index < queue.length; index++) {
     var watcher = queue[index];
     var id = watcher.id;
+    // 把watcher取出来之后，标志位清空
     has$1[id] = null;
     watcher.run();
     // in dev build, check and stop circular updates.
     if ("development" !== 'production' && has$1[id] != null) {
+      // 观察者的循环检测
       circular[id] = (circular[id] || 0) + 1;
       if (circular[id] > config._maxUpdateCount) {
         warn(
@@ -676,10 +686,12 @@ function queueWatcher (watcher) {
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      // 为什么要根据id来进行查找呢？？
       var i = queue.length - 1;
       while (i >= 0 && queue[i].id > watcher.id) {
         i--;
       }
+      // start, deletedCount(0：不删除元素)，watcher要添加进数组的元素从start位置开始
       queue.splice(Math.max(i, index) + 1, 0, watcher);
     }
     // queue the flush
@@ -708,6 +720,7 @@ var Watcher = function Watcher (
   if ( options === void 0 ) options = {};
 
   this.vm = vm;
+  // 将所有的watcher都放到vm的_watchers数组中？？
   vm._watchers.push(this);
   // options
   this.deep = !!options.deep;
@@ -723,6 +736,7 @@ var Watcher = function Watcher (
   this.newDeps = [];
   this.depIds = new _Set();
   this.newDepIds = new _Set();
+  // 这里有点奇怪，为什么要设置getter呢？还搞成个function
   // parse expression for getter
   if (typeof expOrFn === 'function') {
     this.getter = expOrFn;
@@ -738,6 +752,8 @@ var Watcher = function Watcher (
       );
     }
   }
+  // 这里的value是什么？？，为什么要传入一个getter函数
+  // lazy：使用时才会获取值，然后触发依赖收集？？
   this.value = this.lazy
     ? undefined
     : this.get();
@@ -746,12 +762,18 @@ var Watcher = function Watcher (
 /**
  * Evaluate the getter, and re-collect dependencies.
  */
+// 为什么要重新收集dependency呢？？
 Watcher.prototype.get = function get () {
+  // 设置Dep.target为当前对象（Watcher）
   pushTarget(this);
+  // 调用getter函数，就可以触发使用Object.defineProperty定义的getter属性
   var value = this.getter.call(this.vm, this.vm);
   // "touch" every property so they are all tracked as
   // dependencies for deep watching
+  // 传入deep参数
   if (this.deep) {
+    // 这个遍历并没有改变什么，不知道有什么用意？？--通过遍历属性就可以触发依赖收集了
+    // 深度遍历的时候的Watcher都是当前Watcher
     traverse(value);
   }
   popTarget();
@@ -776,16 +798,20 @@ Watcher.prototype.addDep = function addDep (dep) {
 /**
  * Clean up for dependency collection.
  */
+// 为什么要进行清除呢？？
 Watcher.prototype.cleanupDeps = function cleanupDeps () {
     var this$1 = this;
 
   var i = this.deps.length;
   while (i--) {
     var dep = this$1.deps[i];
+    // 经过这次收集之后，将旧的dep删掉，怎么保证没有删错呢
     if (!this$1.newDepIds.has(dep.id)) {
+      // 只是dep删掉了，对应的id并没有被删除？？--这块感觉是有bug的，会导致第二次depIds中存在id，无法再次添加进来
       dep.removeSub(this$1);
     }
   }
+  // 交换一下，意义在哪里呢？？--新旧交换
   var tmp = this.depIds;
   this.depIds = this.newDepIds;
   this.newDepIds = tmp;
@@ -804,7 +830,7 @@ Watcher.prototype.update = function update () {
   /* istanbul ignore else */
   if (this.lazy) {
     this.dirty = true;
-  } else if (this.sync) {
+    } else if (this.sync) {
     this.run();
   } else {
     queueWatcher(this);
@@ -817,9 +843,10 @@ Watcher.prototype.update = function update () {
  */
 Watcher.prototype.run = function run () {
   if (this.active) {
+    // 再次触发依赖收集？？，由于有dep所以不会重复收集依赖
     var value = this.get();
-      if (
-        value !== this.value ||
+    if (
+      value !== this.value ||
       // Deep watchers and watchers on Object/Arrays should fire even
       // when the value is the same, because the value may
       // have mutated.
@@ -830,7 +857,9 @@ Watcher.prototype.run = function run () {
       var oldValue = this.value;
       this.value = value;
       if (this.user) {
+        // watcher里面的回调函数调用方式
         try {
+          // 调用函数设置this指向，和watcher参数一致
           this.cb.call(this.vm, value, oldValue);
         } catch (e) {
           "development" !== 'production' && warn(
@@ -878,6 +907,7 @@ Watcher.prototype.depend = function depend () {
 Watcher.prototype.teardown = function teardown () {
     var this$1 = this;
 
+  // 移除观察者
   if (this.active) {
     // remove self from vm's watcher list
     // this is a somewhat expensive operation so we skip it
@@ -899,6 +929,7 @@ Watcher.prototype.teardown = function teardown () {
  * getters, so that every nested property inside the object
  * is collected as a "deep" dependency.
  */
+// 通过Set避免重复调用函数时的重复触发收集
 var seenObjects = new _Set();
 function traverse (val, seen) {
   var i, keys;
@@ -911,12 +942,15 @@ function traverse (val, seen) {
   if ((isA || isO) && Object.isExtensible(val)) {
     if (val.__ob__) {
       var depId = val.__ob__.dep.id;
+      // 通过set收集遍历过的dep.id，避免重复
       if (seen.has(depId)) {
         return
       } else {
         seen.add(depId);
       }
     }
+    // 根据对象是数组或者是对象，进行递归调用，对其中的每个元素进行观察
+    // ！！通过属性调用就可以触发Object.defineProperty定义的getter方法，然后就可以触发依赖收集了
     if (isA) {
       i = val.length;
       while (i--) { traverse(val[i], seen); }
@@ -934,6 +968,7 @@ function traverse (val, seen) {
  */
 
 var arrayProto = Array.prototype;
+// 继承arrayProto，在后续对象上继续定义新方法，避免后续直接在数组对象上覆盖__proto__对象时出现问题
 var arrayMethods = Object.create(arrayProto);[
   'push',
   'pop',
@@ -946,18 +981,25 @@ var arrayMethods = Object.create(arrayProto);[
 .forEach(function (method) {
   // cache original method
   var original = arrayProto[method];
+  // 在arrayMethods对象上定义method属性，也就是增加新的方法
   def(arrayMethods, method, function mutator () {
     var arguments$1 = arguments;
 
     // avoid leaking arguments:
     // http://jsperf.com/closure-with-arguments
+    // 直接使用arguments存在内容泄漏和V8引擎进行优化的问题，参考：
+    // https://stackoverflow.com/questions/30234908/javascript-v8-optimisation-and-leaking-arguments
+    // https://github.com/nodejs/node/pull/4361
+    // 主要是直接传递arguments给下一个函数会存在问题：original.apply的传递过程
     var i = arguments.length;
     var args = new Array(i);
     while (i--) {
       args[i] = arguments$1[i];
     }
+    // 封装的新的数组方法，首先调用原生的数组方法
     var result = original.apply(this, args);
     var ob = this.__ob__;
+    // 为什么这里要对参数进行选择和观察呢？？
     var inserted;
     switch (method) {
       case 'push':
@@ -967,6 +1009,7 @@ var arrayMethods = Object.create(arrayProto);[
         inserted = args;
         break
       case 'splice':
+        // 从索引2开始拷贝
         inserted = args.slice(2);
         break
     }
@@ -979,6 +1022,8 @@ var arrayMethods = Object.create(arrayProto);[
 
 /*  */
 
+// 从array中导入改造后的数组方法，用来监听数组的变化
+// 获取对象上本身具有的属性
 var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
 /**
@@ -999,15 +1044,26 @@ var observerState = {
  * collect dependencies and dispatches updates.
  */
 var Observer = function Observer (value) {
+  // Observer上的value属性值为当前对象本身
   this.value = value;
+  // 每个Observer对象内含一个Dep对象
   this.dep = new Dep();
   this.vmCount = 0;
+  // lang.js中定义：(obj: Object, key: string, val: any, enumerable?: boolean)
+  // value 是观察对象，这样写是不是命名上是不是不太清楚？？为什么要定义个__ob__属性，值为this呢？？
+  // 这个this是VUE实例还是这个数组属性对象呢？？
+  // this上有value, dep等属性
+  // value为传入的对象，在传入的对象上定义一个__ob__属性，该属性值为该属性的Observer对象
   def(value, '__ob__', this);
+  // 遍历对象，对对象的属性使用object.defineProperty定义setter和getter函数
   if (Array.isArray(value)) {
+    // hasProto 测试{}上是否有__proto__属性
     var augment = hasProto
       ? protoAugment
       : copyAugment;
+    // 如果观察的对象时数组的话，将定义的数组方法赋值到对象上，或者定义到value的__proto__属性上（直接定义到__proto__上，是不是有覆盖的风险？？）
     augment(value, arrayMethods, arrayKeys);
+    // 如果对象是数组，则递归进行数组内容进行观察
     this.observeArray(value);
   } else {
     this.walk(value);
@@ -1021,6 +1077,7 @@ var Observer = function Observer (value) {
  */
 Observer.prototype.walk = function walk (obj) {
   var keys = Object.keys(obj);
+  // 对对象上的每一个属性进行遍历，定义响应式
   for (var i = 0; i < keys.length; i++) {
     defineReactive$$1(obj, keys[i], obj[keys[i]]);
   }
@@ -1043,6 +1100,7 @@ Observer.prototype.observeArray = function observeArray (items) {
  */
 function protoAugment (target, src) {
   /* eslint-disable no-proto */
+  // 会不会有覆盖原型的风险
   target.__proto__ = src;
   /* eslint-enable no-proto */
 }
@@ -1066,10 +1124,12 @@ function copyAugment (target, src, keys) {
  * or the existing observer if the value already has one.
  */
 function observe (value) {
+  // 只有是对象才会创建observe对象
   if (!isObject(value)) {
     return
   }
   var ob;
+  // __ob__属性上的值就是Observer对象
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__;
   } else if (
@@ -1077,7 +1137,7 @@ function observe (value) {
     !config._isServer &&
     (Array.isArray(value) || isPlainObject(value)) &&
     Object.isExtensible(value) &&
-    !value._isVue
+    !value._isVue // 对vue本身的过滤
   ) {
     ob = new Observer(value);
   }
@@ -1087,14 +1147,19 @@ function observe (value) {
 /**
  * Define a reactive property on an Object.
  */
+// 定义对象上的某个属性的setter和getter函数
+// 1. getter时候进行依赖收集
+// 2. setter时候进行变化通知
 function defineReactive$$1 (
   obj,
   key,
   val,
   customSetter
 ) {
+  // 每个对象已经有一个dep了，这里为什么还会有dep呢？？
   var dep = new Dep();
 
+  // Object.defineProperty中要用到的属性描述符
   var property = Object.getOwnPropertyDescriptor(obj, key);
   if (property && property.configurable === false) {
     return
@@ -1104,6 +1169,7 @@ function defineReactive$$1 (
   var getter = property && property.get;
   var setter = property && property.set;
 
+  // 当属性值时对象时，将该属性值包装成observe对象
   var childOb = observe(val);
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -1111,11 +1177,14 @@ function defineReactive$$1 (
     get: function reactiveGetter () {
       var value = getter ? getter.call(obj) : val;
       if (Dep.target) {
+        // 依赖收集 dependency
+        // 父收集，子元素也进行收集？？对象有dep,属性也有自己的dep依赖收集
         dep.depend();
         if (childOb) {
           childOb.dep.depend();
         }
         if (Array.isArray(value)) {
+          // 只收集到数组中的值，不再往下进行递归收集了？？
           for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
             e = value[i];
             e && e.__ob__ && e.__ob__.dep.depend();
@@ -1130,6 +1199,7 @@ function defineReactive$$1 (
         return
       }
       if ("development" !== 'production' && customSetter) {
+        // 进行调试使用？？
         customSetter();
       }
       if (setter) {
@@ -1137,7 +1207,9 @@ function defineReactive$$1 (
       } else {
         val = newVal;
       }
+      // 每一次都重新观察新值的子属性
       childOb = observe(newVal);
+      // 依赖通知
       dep.notify();
     }
   });
@@ -1148,8 +1220,10 @@ function defineReactive$$1 (
  * triggers change notification if the property doesn't
  * already exist.
  */
+// 这里的set和this.$set作用是一样的吗？？
 function set (obj, key, val) {
   if (Array.isArray(obj)) {
+    // 删除一个元素，同时在该位置上添加一个元素val
     obj.splice(key, 1, val);
     return val
   }
@@ -1158,6 +1232,8 @@ function set (obj, key, val) {
     return
   }
   var ob = obj.__ob__;
+  // 1. 不允许在Vue实例本身上通过该函数设置响应式属性, 在Vue实例上定义可响应式属性需要通过传入的data选项进行定义
+  // 2. 如果是一个可观察对象，但是可观察对象的vmCount > 0, 也会进行报错
   if (obj._isVue || (ob && ob.vmCount)) {
     "development" !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -1165,8 +1241,11 @@ function set (obj, key, val) {
     );
     return
   }
+  // __ob__属性是在new Observe中定义的，没有这个属性代表不是可观察对象
   if (!ob) {
     obj[key] = val;
+    // 这里直接就返回了？？为什么不用定义响应式呢
+    // 在一个可观察对象上定义新的属性：如果不是Observe对象，这里也就不用定义响应式了
     return
   }
   defineReactive$$1(ob.value, key, val);
@@ -1240,6 +1319,7 @@ function initProps (vm) {
 
 function initData (vm) {
   var data = vm.$options.data;
+  // vm._data初始化为传入的data参数
   data = vm._data = typeof data === 'function'
     ? data.call(vm)
     : data || {};
@@ -1256,16 +1336,37 @@ function initData (vm) {
   var i = keys.length;
   while (i--) {
     if (props && hasOwn(props, keys[i])) {
+      // props属性优先，如果与data中字段冲突，则报错
       "development" !== 'production' && warn(
         "The data property \"" + (keys[i]) + "\" is already declared as a prop. " +
         "Use prop default value instead.",
         vm
       );
     } else {
+      // 代理vm上的属性，实现在传入options中data里面的属性可以直接通过vm进行调用
+      /**
+       * vm = new Vue({
+       *    data: {
+       *        todo: XXX
+       *    }
+       * });
+       * 可以直接通过vm.todo来调用
+       */
       proxy(vm, keys[i]);
     }
   }
   // observe data
+  // 这里观察整个data对象？？--确实是这样
+  // 这么做的原因是defineReactive需要在对象的属性上定义响应式
+  /**
+   * 传入的参数：
+   * {
+   *    data: {
+   *      todo: XXX
+   *    }
+   * }
+   * 这样就可以监听到data上todo属性的变化了，使用Object.defineProperty(data, "todo", {...})
+   */
   observe(data);
   data.__ob__ && data.__ob__.vmCount++;
 }
@@ -1331,7 +1432,9 @@ function initMethods (vm) {
 function initWatch (vm) {
   var watch = vm.$options.watch;
   if (watch) {
+    // 参数里面定义的watch对象，其中每一个属性值都是函数
     for (var key in watch) {
+      // 多个函数监听同一个状态
       var handler = watch[key];
       if (Array.isArray(handler)) {
         for (var i = 0; i < handler.length; i++) {
@@ -1344,18 +1447,22 @@ function initWatch (vm) {
   }
 }
 
+// vm: Vue实例对象， key: 监听对象， Handler：回调函数（可以定义成对象）
 function createWatcher (vm, key, handler) {
   var options;
   if (isPlainObject(handler)) {
     options = handler;
     handler = handler.handler;
   }
+  // 定义成string，代表是Vue实例中的methods的函数
   if (typeof handler === 'string') {
     handler = vm[handler];
   }
+  // 忽略掉该函数的返回值（取消观察）
   vm.$watch(key, handler, options);
 }
 
+// flow 和 Object.defineProperty有冲突？
 function stateMixin (Vue) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -1373,11 +1480,14 @@ function stateMixin (Vue) {
       );
     };
   }
+  // 在Vue原型上定义$data属性
   Object.defineProperty(Vue.prototype, '$data', dataDef);
 
   Vue.prototype.$set = set;
   Vue.prototype.$delete = del;
 
+  // 定义观察者,参数：
+  // expOrFn: 观察的状态；cb: 回调函数；option：实例化时传入option中的观察属性对应的值
   Vue.prototype.$watch = function (
     expOrFn,
     cb,
@@ -1385,9 +1495,14 @@ function stateMixin (Vue) {
   ) {
     var vm = this;
     options = options || {};
+    // 通过watch函数创建的，这里user属性为true，可能表示是用户定义的Watcher吧？？
     options.user = true;
+    // 只有调用get方法，才会触发依赖收集，这里似乎并没有进行这个操作？？
     var watcher = new Watcher(vm, expOrFn, cb, options);
+    // 把watch的属性值定义成对象时，支持immediate属性，该属性定义是否立即调用还回调函数
+    // 感觉这里调用应该和模板中的状态值有关系？？
     if (options.immediate) {
+      // 回调函数的参数有点奇怪和watch里面的参数不一样
       cb.call(vm, watcher.value);
     }
     return function unwatchFn () {
@@ -1396,6 +1511,7 @@ function stateMixin (Vue) {
   };
 }
 
+// 代理，调用将options中的data转到_data属性中
 function proxy (vm, key) {
   if (!isReserved(key)) {
     Object.defineProperty(vm, key, {
@@ -1558,6 +1674,7 @@ function mergeVNodeHook (def$$1, key, hook) {
   }
 }
 
+// 作为一个基础方法，对于DOM事件有updateDOMListeners这个函数
 function updateListeners (
   on,
   oldOn,
@@ -2529,6 +2646,7 @@ function initMixin (Vue) {
     // a uid
     vm._uid = uid++;
     // a flag to avoid this being observed
+    // 通过这个属性来判断是否是vue实例，为什么不通过proto进行判断呢？？性能考虑吗
     vm._isVue = true;
     // merge options
     // 将new Vue({})时传入的参数挂载到实例的$options属性上
@@ -2608,6 +2726,7 @@ function Vue$3 (options) {
   this._init(options);
 }
 
+// 在原型上定义_init方法
 initMixin(Vue$3);
 stateMixin(Vue$3);
 eventsMixin(Vue$3);
@@ -4448,10 +4567,13 @@ var klass = {
 // skip type checking this file because we need to attach private properties
 // to elements
 
+// DOM上的事件存储在DOM本身上，这个与jQuery处理是相同的
 function updateDOMListeners (oldVnode, vnode) {
   if (!oldVnode.data.on && !vnode.data.on) {
     return
   }
+  // DOM事件存储在data.on，每个DOM上的监听事件，例如v-click, 
+  // directives也存储在vnode的data上， 每个DOM上的指令，例如v-show这种
   var on = vnode.data.on || {};
   var oldOn = oldVnode.data.on || {};
   var add = vnode.elm._v_add || (vnode.elm._v_add = function (event, handler, capture) {
