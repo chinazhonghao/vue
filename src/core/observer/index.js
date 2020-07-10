@@ -123,7 +123,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * or the existing observer if the value already has one.
  */
 export function observe (value: any): Observer | void {
-  // 只有是对象才会创建observe对象
+  // 只有是对象才会创建observe对象，或者数组才会包装成Observer对象，属性使用Object.defineProperty来定义getter, setter函数
   if (!isObject(value)) {
     return
   }
