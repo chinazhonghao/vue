@@ -19,7 +19,7 @@ function Vue (options) {
   this._init(options)
 }
 
-// 在原型上定义_init方法
+// 在原型上定义_init方法, 在new Vue时调用_init函数，实现属性的融合
 initMixin(Vue)
 stateMixin(Vue)
 eventsMixin(Vue)
