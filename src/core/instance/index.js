@@ -15,7 +15,7 @@ function Vue (options) {
     !(this instanceof Vue)) {
     warn('Vue is a constructor and should be called with the `new` keyword')
   }
-  // 这里的this是何时被赋予Component对象类型的？？
+  // 这里的this是何时被赋予Component对象类型的？？这里的_init函数是在initMixin的时候被添加到Vue原型上的
   this._init(options)
 }
 
