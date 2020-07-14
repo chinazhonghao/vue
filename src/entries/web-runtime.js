@@ -1,5 +1,6 @@
 /* @flow */
 
+// 在Vue进一步封装，方便进行调试等操作
 import Vue from 'core/index'
 import config from 'core/config'
 import { extend, noop } from 'shared/util'
@@ -22,7 +23,9 @@ Vue.config.getTagNamespace = getTagNamespace
 Vue.config.mustUseProp = mustUseProp
 
 // install platform runtime directives & components
+// 添加v-model，v-show指令
 extend(Vue.options.directives, platformDirectives)
+// 添加公共组件：Transition, TransitionGroup
 extend(Vue.options.components, platformComponents)
 
 // install platform patch function

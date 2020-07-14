@@ -32,10 +32,12 @@ export function initExtend (Vue: GlobalAPI) {
         name = null
       }
     }
+    // 子组件也是一个Vue实例，这里定义Sub函数来构造子组件
     const Sub = function VueComponent (options) {
       this._init(options)
     }
     Sub.prototype = Object.create(Super.prototype)
+    // 原型上的constructor指向构造函数
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
     Sub.options = mergeOptions(

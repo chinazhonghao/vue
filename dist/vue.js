@@ -174,6 +174,7 @@ function isObject (obj) {
  */
 var toString = Object.prototype.toString;
 var OBJECT_STRING = '[object Object]';
+// 不是数组、null对象
 function isPlainObject (obj) {
   return toString.call(obj) === OBJECT_STRING
 }
@@ -368,7 +369,6 @@ function parsePath (path) {
 /*  */
 /* globals MutationObserver */
 
-// can we use __proto__?
 var hasProto = '__proto__' in {};
 
 // Browser environment sniffing
@@ -581,9 +581,6 @@ Dep.prototype.notify = function notify () {
   }
 };
 
-// the current target watcher being evaluated.
-// this is globally unique because there could be only one
-// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -767,6 +764,7 @@ Watcher.prototype.get = function get () {
   // 设置Dep.target为当前对象（Watcher）
   pushTarget(this);
   // 调用getter函数，就可以触发使用Object.defineProperty定义的getter属性
+  // 计算属性getter为定义的函数，给定义的函数传入vm参数，是为了防止函数本身被bind了this
   var value = this.getter.call(this.vm, this.vm);
   // "touch" every property so they are all tracked as
   // dependencies for deep watching
@@ -828,9 +826,10 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
  */
 Watcher.prototype.update = function update () {
   /* istanbul ignore else */
+  // 计算属性的这个属性为true，通过设置dirty属性控制在获取计算属性时主动触发get函数
   if (this.lazy) {
     this.dirty = true;
-    } else if (this.sync) {
+  } else if (this.sync) {
     this.run();
   } else {
     queueWatcher(this);
@@ -885,6 +884,7 @@ Watcher.prototype.run = function run () {
  * This only gets called for lazy watchers.
  */
 Watcher.prototype.evaluate = function evaluate () {
+  // 当前的value值
   this.value = this.get();
   this.dirty = false;
 };
@@ -924,12 +924,6 @@ Watcher.prototype.teardown = function teardown () {
   }
 };
 
-/**
- * Recursively traverse an object to evoke all converted
- * getters, so that every nested property inside the object
- * is collected as a "deep" dependency.
- */
-// 通过Set避免重复调用函数时的重复触发收集
 var seenObjects = new _Set();
 function traverse (val, seen) {
   var i, keys;
@@ -998,8 +992,9 @@ var arrayMethods = Object.create(arrayProto);[
     }
     // 封装的新的数组方法，首先调用原生的数组方法
     var result = original.apply(this, args);
+    // 每一个对象都会包装成Observer对象，对其属性使用Object.defineProperty定义getter和setter函数
     var ob = this.__ob__;
-    // 为什么这里要对参数进行选择和观察呢？？
+    // 为什么这里要对参数进行选择和观察呢？？--重新观察新插入数据的部分，这样不用遍历全部的数组部分
     var inserted;
     switch (method) {
       case 'push':
@@ -1009,7 +1004,7 @@ var arrayMethods = Object.create(arrayProto);[
         inserted = args;
         break
       case 'splice':
-        // 从索引2开始拷贝
+        // 从索引2开始拷贝--splice的参数：startIndex, deleteCount, newValue... 所以从索引2开始复制
         inserted = args.slice(2);
         break
     }
@@ -1022,8 +1017,6 @@ var arrayMethods = Object.create(arrayProto);[
 
 /*  */
 
-// 从array中导入改造后的数组方法，用来监听数组的变化
-// 获取对象上本身具有的属性
 var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
 /**
@@ -1124,7 +1117,7 @@ function copyAugment (target, src, keys) {
  * or the existing observer if the value already has one.
  */
 function observe (value) {
-  // 只有是对象才会创建observe对象
+  // 只有是对象才会创建observe对象，或者数组才会包装成Observer对象，属性使用Object.defineProperty来定义getter, setter函数
   if (!isObject(value)) {
     return
   }
@@ -1133,6 +1126,7 @@ function observe (value) {
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__;
   } else if (
+    // 这里用到了全局的转化控制标志位
     observerState.shouldConvert &&
     !config._isServer &&
     (Array.isArray(value) || isPlainObject(value)) &&
@@ -1176,6 +1170,7 @@ function defineReactive$$1 (
     configurable: true,
     get: function reactiveGetter () {
       var value = getter ? getter.call(obj) : val;
+      // 在普通函数进行调用时，这个地方为假就不会进行依赖收集
       if (Dep.target) {
         // 依赖收集 dependency
         // 父收集，子元素也进行收集？？对象有dep,属性也有自己的dep依赖收集
@@ -1293,11 +1288,13 @@ function initProps (vm) {
     var keys = vm.$options._propKeys = Object.keys(props);
     var isRoot = !vm.$parent;
     // root instance props should be converted
+    // 非根Vue则对props不进行转换--根Vue也不需要props吧，这点写法有点奇怪啊
     observerState.shouldConvert = isRoot;
     var loop = function ( i ) {
       var key = keys[i];
       /* istanbul ignore else */
       {
+        // vm, key, val, customerSetter,开发环境时定义了customerSetter，在设置props的属性值时进行报错
         defineReactive$$1(vm, key, validateProp(key, props, propsData, vm), function () {
           if (vm.$parent && !observerState.isSettingProps) {
             warn(
@@ -1371,6 +1368,7 @@ function initData (vm) {
   data.__ob__ && data.__ob__.vmCount++;
 }
 
+// 计算属性无法直接赋值的设置
 var computedSharedDefinition = {
   enumerable: true,
   configurable: true,
@@ -1382,34 +1380,43 @@ function initComputed (vm) {
   var computed = vm.$options.computed;
   if (computed) {
     for (var key in computed) {
+      // 计算属性的响应值
       var userDef = computed[key];
       if (typeof userDef === 'function') {
         computedSharedDefinition.get = makeComputedGetter(userDef, vm);
         computedSharedDefinition.set = noop;
       } else {
+        // 计算属性还可以是对象，其中get属性值是一个函数：{get:XXX, set:XXX, cache:true/false}
         computedSharedDefinition.get = userDef.get
           ? userDef.cache !== false
             ? makeComputedGetter(userDef.get, vm)
-            : bind$1(userDef.get, vm)
+            : bind$1(userDef.get, vm) // 这里只是bind不创建watcher了？？
           : noop;
         computedSharedDefinition.set = userDef.set
           ? bind$1(userDef.set, vm)
           : noop;
       }
+      // 在vm是定义计算属性，值为一个对象，对象中有get，set函数等
       Object.defineProperty(vm, key, computedSharedDefinition);
     }
   }
 }
 
 function makeComputedGetter (getter, owner) {
+  // 计算属性的cb为空，但是getter为函数
+  // 计算属性都是懒加载的，不会在new Watcher的时候出发依赖收集，也就是说如果计算属性没有被用到的话，就不会相应的dep
   var watcher = new Watcher(owner, getter, noop, {
     lazy: true
   });
   return function computedGetter () {
+    // dirty属性值和lazy属性是一样，所以刚开始时会触发evaluate
     if (watcher.dirty) {
+      // 主动调用watcher的get函数，进行依赖收集和属性值的计算
+      // 在调用computed函数时，就会触发其所依赖的Observer的getter函数，然后就可以进行依赖收集
       watcher.evaluate();
     }
     if (Dep.target) {
+      // 第一次调用computed属性时，会触发依赖收集，对于每一个被依赖的Observer都会进行收集，因此依赖的每一个Observer有所改变时都会触发computed的改变
       watcher.depend();
     }
     return watcher.value
@@ -1421,6 +1428,7 @@ function initMethods (vm) {
   if (methods) {
     for (var key in methods) {
       if (methods[key] != null) {
+        // 定义的method都bind了当前的vm，可以直接使用this
         vm[key] = bind$1(methods[key], vm);
       } else {
         warn(("Method \"" + key + "\" is undefined in options."), vm);
@@ -1429,6 +1437,7 @@ function initMethods (vm) {
   }
 }
 
+// watch如何观察状态的变更呢？{state: function(){}}
 function initWatch (vm) {
   var watch = vm.$options.watch;
   if (watch) {
@@ -1782,14 +1791,17 @@ function initLifecycle (vm) {
 }
 
 function lifecycleMixin (Vue) {
+  // 将Vue挂载到DOM实例上
   Vue.prototype._mount = function (
     el,
     hydrating
   ) {
     var vm = this;
     vm.$el = el;
+    // options.render大部分情况下并没有定义，这是从哪里来呢？？
     if (!vm.$options.render) {
       vm.$options.render = emptyVNode;
+      // 传入的options中template或者render函数需要设置至少一个
       {
         /* istanbul ignore if */
         if (vm.$options.template) {
@@ -1938,6 +1950,7 @@ function lifecycleMixin (Vue) {
   };
 }
 
+// vm: 当前Vue实例对象，hook：钩子函数名称
 function callHook (vm, hook) {
   // 从$options获取key对应的生命周期函数
   var handlers = vm.$options[hook];
@@ -1947,6 +1960,7 @@ function callHook (vm, hook) {
       handlers[i].call(vm);
     }
   }
+  // 这里表示可以监听子组件的生命周期事件--经过验证监听子组件的@hook:created事件即可以监听到相应事件
   vm.$emit('hook:' + hook);
 }
 
@@ -2243,8 +2257,6 @@ function mergeHook$1 (a, b) {
 
 /*  */
 
-// wrapper function for providing a more flexible interface
-// without getting yelled at by flow
 function createElement (
   tag,
   data,
@@ -2656,6 +2668,7 @@ function initMixin (Vue) {
       // internal component options needs special treatment.
       initInternalComponent(vm, options);
     } else {
+      // resolveConstrucorOptions: 
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm),
         options || {},
@@ -2671,8 +2684,10 @@ function initMixin (Vue) {
     // 为什么要这么赋值一下呢？？
     vm._self = vm;
     initLifecycle(vm);
+    // 定义_updateListeners函数
     initEvents(vm);
     callHook(vm, 'beforeCreate');
+    // 上面先把options进行合并，然后赋值到Vue实例vm上，这里根据vm上的选项进行初始化，分层很清晰
     initState(vm);
     callHook(vm, 'created');
     initRender(vm);
@@ -2693,14 +2708,17 @@ function initMixin (Vue) {
     }
   }
 
+  // 获取parent元素上的选项参数
   function resolveConstructorOptions (vm) {
     var Ctor = vm.constructor;
     var options = Ctor.options;
     if (Ctor.super) {
       var superOptions = Ctor.super.options;
+      // 缓存其更上一层的选项，当缓存的对象和parent上的对象一致则不需要再次计算
       var cachedSuperOptions = Ctor.superOptions;
       if (superOptions !== cachedSuperOptions) {
         // super option changed
+        // 再次缓存parent上的选项
         Ctor.superOptions = superOptions;
         options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions);
         if (options.name) {
@@ -2712,21 +2730,16 @@ function initMixin (Vue) {
   }
 }
 
-/**
- * 通过new运算符进行调用，new Vue()的形式，返回ele, 则ele.__proto__ === Vue.prototype
- * instanceof运算符检测对象是否是某个构造函数的实例，即检测上述的等号是否存在
- * @param {*} options 
- */
 function Vue$3 (options) {
   if ("development" !== 'production' &&
     !(this instanceof Vue$3)) {
     warn('Vue is a constructor and should be called with the `new` keyword');
   }
-  // 这里的this是何时被赋予Component对象类型的？？
+  // 这里的this是何时被赋予Component对象类型的？？这里的_init函数是在initMixin的时候被添加到Vue原型上的
   this._init(options);
 }
 
-// 在原型上定义_init方法
+// 在原型上定义_init方法, 在new Vue时调用_init函数，实现属性的融合
 initMixin(Vue$3);
 stateMixin(Vue$3);
 eventsMixin(Vue$3);
@@ -2767,11 +2780,6 @@ var formatComponentName;
 
 /*  */
 
-/**
- * Option overwriting strategies are functions that handle
- * how to merge a parent option value and a child option
- * value into the final value.
- */
 var strats = config.optionMergeStrategies;
 
 /**
@@ -2962,12 +2970,15 @@ var defaultStrat = function (parentVal, childVal) {
  * Make sure component options get converted to actual
  * constructors.
  */
+// 包装传入的选项，使之成为一个VueComponent
 function normalizeComponents (options) {
+  // 传入的选项中有组件选项
   if (options.components) {
     var components = options.components;
     var def;
     for (var key in components) {
       var lower = key.toLowerCase();
+      // 不能用原生的Tag和保留Tag
       if (isBuiltInTag(lower) || config.isReservedTag(lower)) {
         "development" !== 'production' && warn(
           'Do not use built-in or reserved HTML elements as component ' +
@@ -2977,6 +2988,7 @@ function normalizeComponents (options) {
       }
       def = components[key];
       if (isPlainObject(def)) {
+        // 确保def不是null或者数组，使用Vue.extend,
         components[key] = Vue$3.extend(def);
       }
     }
@@ -2992,12 +3004,14 @@ function normalizeProps (options) {
   if (!props) { return }
   var res = {};
   var i, val, name;
+  // props以数组方式进行传递，保证数组中的每一项都是string类型
   if (Array.isArray(props)) {
     i = props.length;
     while (i--) {
       val = props[i];
       if (typeof val === 'string') {
         name = camelize(val);
+        // 数组方式传递的props无法确定参数类型
         res[name] = { type: null };
       } else {
         warn('props must be strings when using array syntax.');
@@ -3007,6 +3021,7 @@ function normalizeProps (options) {
     for (var key in props) {
       val = props[key];
       name = camelize(key);
+      // props的类型
       res[name] = isPlainObject(val)
         ? val
         : { type: val };
@@ -3018,12 +3033,14 @@ function normalizeProps (options) {
 /**
  * Normalize raw function directives into object format.
  */
+// 定义指令
 function normalizeDirectives (options) {
   var dirs = options.directives;
   if (dirs) {
     for (var key in dirs) {
       var def = dirs[key];
       if (typeof def === 'function') {
+        // 指定的两个属性：bind和update都是绑定到同一个函数
         dirs[key] = { bind: def, update: def };
       }
     }
@@ -3119,9 +3136,11 @@ function validateProp (
 ) {
   var prop = propOptions[key];
   var absent = !hasOwn(propsData, key);
+  // 在传入参数时，可以通过定义propsData来设置props的默认值
   var value = propsData[key];
   // handle boolean props
   if (getType(prop.type) === 'Boolean') {
+    // 如果props属性没有设置默认值，且没有提供propsData来设置默认值，这里会设置默认值
     if (absent && !hasOwn(prop, 'default')) {
       value = false;
     } else if (value === '' || value === hyphenate(key)) {
@@ -3134,7 +3153,8 @@ function validateProp (
     // since the default value is a fresh copy,
     // make sure to observe it.
     var prevShouldConvert = observerState.shouldConvert;
-    observerState.shouldConvert = true;
+    observerState.shouldConvert = true; // 这里每一个prop不是都要进行观察了吗？？
+    // 将props的值变成可观察的对象
     observe(value);
     observerState.shouldConvert = prevShouldConvert;
   }
@@ -3147,6 +3167,7 @@ function validateProp (
 /**
  * Get the default value of a prop.
  */
+// 解析props的default属性，来获取默认值
 function getPropDefaultValue (vm, prop, name) {
   // no default, return undefined
   if (!hasOwn(prop, 'default')) {
@@ -3154,6 +3175,7 @@ function getPropDefaultValue (vm, prop, name) {
   }
   var def = prop.default;
   // warn against non-factory defaults for Object & Array
+  // 传递的props默认对象不能是对象或者数组
   if (isObject(def)) {
     "development" !== 'production' && warn(
       'Invalid default value for prop "' + name + '": ' +
@@ -3163,6 +3185,7 @@ function getPropDefaultValue (vm, prop, name) {
     );
   }
   // call factory function for non-Function types
+  // 这里针对props是是对象或者数组的形式，通过函数来返回新的props
   return typeof def === 'function' && prop.type !== Function
     ? def.call(vm)
     : def
@@ -3178,6 +3201,7 @@ function assertProp (
   vm,
   absent
 ) {
+  // props设置了required属性，则需要提供propsData，这个是由父组件提供的？？  
   if (prop.required && absent) {
     warn(
       'Missing required prop: "' + name + '"',
@@ -3210,6 +3234,7 @@ function assertProp (
     );
     return
   }
+  // props可以设置validator属性，对传入的属性值进行校验
   var validator = prop.validator;
   if (validator) {
     if (!validator(value)) {
@@ -3310,17 +3335,21 @@ var util = Object.freeze({
 function initUse (Vue) {
   Vue.use = function (plugin) {
     /* istanbul ignore if */
+    // 如果插件已经installed了，则直接返回
     if (plugin.installed) {
       return
     }
     // additional parameters
     var args = toArray(arguments, 1);
     args.unshift(this);
+    // 1. 支持plugin本身是一个函数，则调用这个函数
+    // 2. 在plugin上定义install属性，是一个函数
     if (typeof plugin.install === 'function') {
       plugin.install.apply(plugin, args);
     } else {
       plugin.apply(null, args);
     }
+    // 设置标志位，避免重复添加
     plugin.installed = true;
     return this
   };
@@ -3365,10 +3394,12 @@ function initExtend (Vue) {
         name = null;
       }
     }
+    // 子组件也是一个Vue实例，这里定义Sub函数来构造子组件
     var Sub = function VueComponent (options) {
       this._init(options);
     };
     Sub.prototype = Object.create(Super.prototype);
+    // 原型上的constructor指向构造函数
     Sub.prototype.constructor = Sub;
     Sub.cid = cid++;
     Sub.options = mergeOptions(
@@ -3489,6 +3520,7 @@ function initGlobalAPI (Vue) {
       );
     };
   }
+  // 在Vue上定义config属性，同时定义其getter和setter函数
   Object.defineProperty(Vue, 'config', configDef);
   Vue.util = util;
   Vue.set = set;
@@ -3496,20 +3528,29 @@ function initGlobalAPI (Vue) {
   Vue.nextTick = nextTick;
 
   Vue.options = Object.create(null);
+  /**
+   * component，directive，filter
+   */
   config._assetTypes.forEach(function (type) {
     Vue.options[type + 's'] = Object.create(null);
   });
 
+  // 在components添加公共组件，为什么不放在外围与transition组件一起添加呢？？
   extend(Vue.options.components, builtInComponents);
 
+  // 添加use函数，再添加插件时会使用到
   initUse(Vue);
+  // 添加mixin函数，用来合并mixin选项，可以直接使用mixin函数进行混合
+  // 并不能在Vue实例上进行调用，这个用处在哪里呢？？用来在Vue本身上添加属性
   initMixin$1(Vue);
+  // 根据this创建一个子对象
   initExtend(Vue);
   initAssetRegisters(Vue);
 }
 
 initGlobalAPI(Vue$3);
 
+// 在Vue原型上定义$isServer属性，通过"client"来标记是否时服务器环境
 Object.defineProperty(Vue$3.prototype, '$isServer', {
   get: function () { return config._isServer; }
 });
@@ -3518,7 +3559,6 @@ Vue$3.version = '2.0.0';
 
 /*  */
 
-// attributes that should be using props for binding
 var mustUseProp = makeMap('value,selected,checked,muted');
 
 var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
@@ -3548,6 +3588,7 @@ var isAttr = makeMap(
   'target,title,type,usemap,value,width,wrap'
 );
 
+/* istanbul ignore next */
 
 
 var xlinkNS = 'http://www.w3.org/1999/xlink';
@@ -3735,9 +3776,6 @@ function isUnknownElement (tag) {
 
 /*  */
 
-/**
- * Query an element selector if it's not an element already.
- */
 function query (el) {
   if (typeof el === 'string') {
     var selector = el;
@@ -4567,7 +4605,6 @@ var klass = {
 // skip type checking this file because we need to attach private properties
 // to elements
 
-// DOM上的事件存储在DOM本身上，这个与jQuery处理是相同的
 function updateDOMListeners (oldVnode, vnode) {
   if (!oldVnode.data.on && !vnode.data.on) {
     return
@@ -5152,8 +5189,6 @@ var platformModules = [
 
 /*  */
 
-// the directive module should be applied last, after all
-// built-in modules have been applied.
 var modules = platformModules.concat(baseModules);
 
 var patch$1 = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -5291,7 +5326,6 @@ function trigger (el, type) {
 
 /*  */
 
-// recursively search for possible transition defined inside the component root
 function locateNode (vnode) {
   return vnode.child && (!vnode.data || !vnode.data.transition)
     ? locateNode(vnode.child._vnode)
@@ -5664,14 +5698,16 @@ var platformComponents = {
 
 /*  */
 
-// install platform specific utils
+// 在Vue进一步封装，方便进行调试等操作
 Vue$3.config.isUnknownElement = isUnknownElement;
 Vue$3.config.isReservedTag = isReservedTag;
 Vue$3.config.getTagNamespace = getTagNamespace;
 Vue$3.config.mustUseProp = mustUseProp;
 
 // install platform runtime directives & components
+// 添加v-model，v-show指令
 extend(Vue$3.options.directives, platformDirectives);
+// 添加公共组件：Transition, TransitionGroup
 extend(Vue$3.options.components, platformComponents);
 
 // install platform patch function
@@ -5706,7 +5742,6 @@ setTimeout(function () {
 
 /*  */
 
-// check whether current browser encodes a char inside attribute values
 function shouldDecode (content, encoded) {
   var div = document.createElement('div');
   div.innerHTML = "<div a=\"" + content + "\">";
@@ -5744,7 +5779,6 @@ function decodeHTML (html) {
  * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
  */
 
-// Regular Expressions for parsing tags and attributes
 var singleAttrIdentifier = /([^\s"'<>\/=]+)/;
 var singleAttrAssign = /(?:=)/;
 var singleAttrValues = [
@@ -6855,7 +6889,6 @@ var baseDirectives = {
 
 /*  */
 
-// configurable state
 var warn$2;
 var transforms$1;
 var dataGenFns;
@@ -7079,9 +7112,6 @@ function genProps (props) {
 
 /*  */
 
-/**
- * Compile a template.
- */
 function compile$1 (
   template,
   options
@@ -7098,7 +7128,6 @@ function compile$1 (
 
 /*  */
 
-// operators like typeof, instanceof and in are allowed
 var prohibitedKeywordRE = new RegExp('\\b' + (
   'do,if,for,let,new,try,var,case,else,with,await,break,catch,class,const,' +
   'super,throw,while,yield,delete,export,import,return,switch,default,' +

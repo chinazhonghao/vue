@@ -25,7 +25,7 @@
     <script type="text/x-template" id="demo-template">
       <div>
         <p>Selected: {{ selected }}</p>
-        <select2 :options="options" v-model="selected">
+        <select2 @hook:created="onCreated" @hook:mounted="onCreated" :options="options" v-model="selected">
           <option disabled value="0">Select one</option>
         </select2>
       </div>
@@ -70,12 +70,18 @@
     var vm = new Vue({
       el: '#el',
       template: '#demo-template',
+      components: {select2},
       data: {
         selected: 0,
         options: [
           { id: 1, text: 'Hello' },
           { id: 2, text: 'World' }
         ]
+      },
+      methods: {
+        onCreated: function(){
+          console.log("created");
+        }
       }
     })
     </script>

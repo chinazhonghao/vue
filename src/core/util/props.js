@@ -58,6 +58,7 @@ function getPropDefaultValue (vm: ?Component, prop: PropOptions, name: string): 
   }
   const def = prop.default
   // warn against non-factory defaults for Object & Array
+  // 传递的props默认对象不能是对象或者数组
   if (isObject(def)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Invalid default value for prop "' + name + '": ' +
@@ -67,6 +68,7 @@ function getPropDefaultValue (vm: ?Component, prop: PropOptions, name: string): 
     )
   }
   // call factory function for non-Function types
+  // 这里针对props是是对象或者数组的形式，通过函数来返回新的props
   return typeof def === 'function' && prop.type !== Function
     ? def.call(vm)
     : def

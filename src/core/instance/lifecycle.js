@@ -37,14 +37,17 @@ export function initLifecycle (vm: Component) {
 }
 
 export function lifecycleMixin (Vue: Class<Component>) {
+  // 将Vue挂载到DOM实例上
   Vue.prototype._mount = function (
     el?: Element | void,
     hydrating?: boolean
   ): Component {
     const vm: Component = this
     vm.$el = el
+    // options.render大部分情况下并没有定义，这是从哪里来呢？？
     if (!vm.$options.render) {
       vm.$options.render = emptyVNode
+      // 传入的options中template或者render函数需要设置至少一个
       if (process.env.NODE_ENV !== 'production') {
         /* istanbul ignore if */
         if (vm.$options.template) {
@@ -193,6 +196,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
   }
 }
 
+// vm: 当前Vue实例对象，hook：钩子函数名称
 export function callHook (vm: Component, hook: string) {
   // 从$options获取key对应的生命周期函数
   const handlers = vm.$options[hook]
@@ -202,5 +206,6 @@ export function callHook (vm: Component, hook: string) {
       handlers[i].call(vm)
     }
   }
+  // 这里表示可以监听子组件的生命周期事件--经过验证监听子组件的@hook:created事件即可以监听到相应事件
   vm.$emit('hook:' + hook)
 }

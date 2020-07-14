@@ -14,6 +14,7 @@ export function initRender (vm: Component) {
   vm.$vnode = null // the placeholder node in parent tree
   vm._vnode = null // the root of the child tree
   vm._staticTrees = null
+  // 渲染的上下文
   vm._renderContext = vm.$options._parentVnode && vm.$options._parentVnode.context
   vm.$slots = resolveSlots(vm.$options._renderChildren, vm._renderContext)
   // bind the public createElement fn to this instance

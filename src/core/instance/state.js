@@ -37,7 +37,7 @@ function initProps (vm: Component) {
     const keys = vm.$options._propKeys = Object.keys(props)
     const isRoot = !vm.$parent
     // root instance props should be converted
-    // 非根Vue则对props不进行转换
+    // 非根Vue则对props不进行转换--根Vue也不需要props吧，这点写法有点奇怪啊
     observerState.shouldConvert = isRoot
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]
@@ -56,6 +56,7 @@ function initProps (vm: Component) {
           }
         })
       } else {
+        // props不能被赋值，定义这个有用吗
         defineReactive(vm, key, validateProp(key, props, propsData, vm))
       }
     }

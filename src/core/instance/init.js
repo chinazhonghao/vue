@@ -32,6 +32,7 @@ export function initMixin (Vue: Class<Component>) {
       // internal component options needs special treatment.
       initInternalComponent(vm, options)
     } else {
+      // resolveConstrucorOptions: 
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm),
         options || {},
@@ -49,8 +50,11 @@ export function initMixin (Vue: Class<Component>) {
     // 为什么要这么赋值一下呢？？
     vm._self = vm
     initLifecycle(vm)
+    // 定义_updateListeners函数
     initEvents(vm)
     callHook(vm, 'beforeCreate')
+    // 上面先把options进行合并，然后赋值到Vue实例vm上，这里根据vm上的选项进行初始化，分层很清晰
+    // 为什么要在Object或者Array上定义Observer呢？Observer到底有什么用，实际的依赖相应应该是属性上面的，而且属性上面本身也有Sub可以进行依赖收集
     initState(vm)
     callHook(vm, 'created')
     initRender(vm)
@@ -71,14 +75,17 @@ export function initMixin (Vue: Class<Component>) {
     }
   }
 
+  // 获取parent元素上的选项参数
   function resolveConstructorOptions (vm: Component) {
     const Ctor = vm.constructor
     let options = Ctor.options
     if (Ctor.super) {
       const superOptions = Ctor.super.options
+      // 缓存其更上一层的选项，当缓存的对象和parent上的对象一致则不需要再次计算
       const cachedSuperOptions = Ctor.superOptions
       if (superOptions !== cachedSuperOptions) {
         // super option changed
+        // 再次缓存parent上的选项
         Ctor.superOptions = superOptions
         options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions)
         if (options.name) {

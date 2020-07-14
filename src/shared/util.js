@@ -163,6 +163,7 @@ export function isObject (obj: mixed): boolean {
  */
 const toString = Object.prototype.toString
 const OBJECT_STRING = '[object Object]'
+// 不是数组、null对象
 export function isPlainObject (obj: any): boolean {
   return toString.call(obj) === OBJECT_STRING
 }

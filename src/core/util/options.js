@@ -209,12 +209,15 @@ const defaultStrat = function (parentVal: any, childVal: any): any {
  * Make sure component options get converted to actual
  * constructors.
  */
+// 包装传入的选项，使之成为一个VueComponent
 function normalizeComponents (options: Object) {
+  // 传入的选项中有组件选项
   if (options.components) {
     const components = options.components
     let def
     for (const key in components) {
       const lower = key.toLowerCase()
+      // 不能用原生的Tag和保留Tag
       if (isBuiltInTag(lower) || config.isReservedTag(lower)) {
         process.env.NODE_ENV !== 'production' && warn(
           'Do not use built-in or reserved HTML elements as component ' +
@@ -224,6 +227,7 @@ function normalizeComponents (options: Object) {
       }
       def = components[key]
       if (isPlainObject(def)) {
+        // 确保def不是null或者数组，使用Vue.extend,
         components[key] = Vue.extend(def)
       }
     }
@@ -239,12 +243,14 @@ function normalizeProps (options: Object) {
   if (!props) return
   const res = {}
   let i, val, name
+  // props以数组方式进行传递，保证数组中的每一项都是string类型
   if (Array.isArray(props)) {
     i = props.length
     while (i--) {
       val = props[i]
       if (typeof val === 'string') {
         name = camelize(val)
+        // 数组方式传递的props无法确定参数类型
         res[name] = { type: null }
       } else if (process.env.NODE_ENV !== 'production') {
         warn('props must be strings when using array syntax.')
@@ -254,6 +260,7 @@ function normalizeProps (options: Object) {
     for (const key in props) {
       val = props[key]
       name = camelize(key)
+      // props的类型
       res[name] = isPlainObject(val)
         ? val
         : { type: val }
@@ -265,12 +272,14 @@ function normalizeProps (options: Object) {
 /**
  * Normalize raw function directives into object format.
  */
+// 定义指令
 function normalizeDirectives (options: Object) {
   const dirs = options.directives
   if (dirs) {
     for (const key in dirs) {
       const def = dirs[key]
       if (typeof def === 'function') {
+        // 指定的两个属性：bind和update都是绑定到同一个函数
         dirs[key] = { bind: def, update: def }
       }
     }
