@@ -1,5 +1,6 @@
 /* @flow */
 
+// Vue来源
 import Vue from './web-runtime'
 import { warn, cached } from 'core/util/index'
 import { query } from 'web/util/index'
@@ -12,10 +13,12 @@ const idToTemplate = cached(id => {
 })
 
 const mount = Vue.prototype.$mount
+// 每个平台定以不同的$mount以进行适配
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
+  // 使用原生JS查询，document.querySelector返回DOM
   el = el && query(el)
 
   /* istanbul ignore if */
@@ -26,13 +29,16 @@ Vue.prototype.$mount = function (
     return this
   }
 
+  // 获取用户传入的参数
   const options = this.$options
   // resolve template/el and convert to render function
   if (!options.render) {
+    // render和template必定要有一个
     let template = options.template
     let isFromDOM = false
     if (template) {
       if (typeof template === 'string') {
+        // 如果template以#号开头，表示该DOM是引用的
         if (template.charAt(0) === '#') {
           isFromDOM = true
           template = idToTemplate(template)

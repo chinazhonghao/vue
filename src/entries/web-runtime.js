@@ -1,6 +1,6 @@
 /* @flow */
 
-// 在Vue进一步封装，方便进行调试等操作
+// 在Vue进一步封装，方便进行调试等操作，之后的逻辑都是在这个对象上面做扩展
 import Vue from 'core/index'
 import config from 'core/config'
 import { extend, noop } from 'shared/util'
