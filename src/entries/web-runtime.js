@@ -29,9 +29,10 @@ extend(Vue.options.directives, platformDirectives)
 extend(Vue.options.components, platformComponents)
 
 // install platform patch function
+// 根据不同的平台创建patch函数，个人认为创建patch函数不需要单独写到另一个文件中，毕竟逻辑不算复杂
 Vue.prototype.__patch__ = config._isServer ? noop : patch
 
-// wrap mount
+// wrap mount -- 可以被runtime-only的编译方式直接复用的；hydrating和服务端渲染有关
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean

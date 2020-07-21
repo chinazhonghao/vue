@@ -84,10 +84,12 @@ function isPrimitive (value) {
 /**
  * Create a cached version of a pure function.
  */
+// 创建一个函数的cache, 由于cache内容是input和output对应，因此传入的函数必须是纯函数，保证同样的输入具有同样的输出才行
 function cached (fn) {
   var cache = Object.create(null);
   return function cachedFn (str) {
     var hit = cache[str];
+    // 对fn的调用不通过fn.call设置context了
     return hit || (cache[str] = fn(str))
   }
 }
@@ -1798,7 +1800,7 @@ function lifecycleMixin (Vue) {
   ) {
     var vm = this;
     vm.$el = el;
-    // options.render大部分情况下并没有定义，这是从哪里来呢？？
+    // options.render大部分情况下并没有定义，这是从哪里来呢？？--从每个平台定义的$mount函数而来
     if (!vm.$options.render) {
       vm.$options.render = emptyVNode;
       // 传入的options中template或者render函数需要设置至少一个
@@ -2321,6 +2323,7 @@ function initRender (vm) {
   vm.$vnode = null; // the placeholder node in parent tree
   vm._vnode = null; // the root of the child tree
   vm._staticTrees = null;
+  // 渲染的上下文
   vm._renderContext = vm.$options._parentVnode && vm.$options._parentVnode.context;
   vm.$slots = resolveSlots(vm.$options._renderChildren, vm._renderContext);
   // bind the public createElement fn to this instance
@@ -2688,6 +2691,7 @@ function initMixin (Vue) {
     initEvents(vm);
     callHook(vm, 'beforeCreate');
     // 上面先把options进行合并，然后赋值到Vue实例vm上，这里根据vm上的选项进行初始化，分层很清晰
+    // 为什么要在Object或者Array上定义Observer呢？Observer到底有什么用，实际的依赖相应应该是属性上面的，而且属性上面本身也有Sub可以进行依赖收集
     initState(vm);
     callHook(vm, 'created');
     initRender(vm);
@@ -5698,7 +5702,8 @@ var platformComponents = {
 
 /*  */
 
-// 在Vue进一步封装，方便进行调试等操作
+// 在Vue进一步封装，方便进行调试等操作，之后的逻辑都是在这个对象上面做扩展
+// install platform specific utils
 Vue$3.config.isUnknownElement = isUnknownElement;
 Vue$3.config.isReservedTag = isReservedTag;
 Vue$3.config.getTagNamespace = getTagNamespace;
@@ -5713,7 +5718,7 @@ extend(Vue$3.options.components, platformComponents);
 // install platform patch function
 Vue$3.prototype.__patch__ = config._isServer ? noop : patch$1;
 
-// wrap mount
+// wrap mount -- 可以被runtime-only的编译方式直接复用的；hydrating和服务端渲染有关
 Vue$3.prototype.$mount = function (
   el,
   hydrating
@@ -7529,16 +7534,20 @@ function makeFunction (code) {
 
 /*  */
 
+// Vue来源
 var idToTemplate = cached(function (id) {
   var el = query(id);
   return el && el.innerHTML
 });
 
+// 这里应该是缓存与平台无关的$mount方法，不过这种写法有点让人迷惑
 var mount = Vue$3.prototype.$mount;
+// 每个平台定以不同的$mount以进行适配
 Vue$3.prototype.$mount = function (
   el,
   hydrating
 ) {
+  // 使用原生JS查询，document.querySelector返回DOM
   el = el && query(el);
 
   /* istanbul ignore if */
@@ -7549,15 +7558,19 @@ Vue$3.prototype.$mount = function (
     return this
   }
 
+  // 获取用户传入的参数
   var options = this.$options;
   // resolve template/el and convert to render function
   if (!options.render) {
+    // render和template必定要有一个
     var template = options.template;
     var isFromDOM = false;
     if (template) {
       if (typeof template === 'string') {
+        // 如果template以#号开头，表示该DOM是引用的
         if (template.charAt(0) === '#') {
           isFromDOM = true;
+          // 如果是ID的形式，在query Dom时使用document.getElementById是不是比较好
           template = idToTemplate(template);
         }
       } else if (template.nodeType) {
@@ -7587,6 +7600,7 @@ Vue$3.prototype.$mount = function (
       options.staticRenderFns = staticRenderFns;
     }
   }
+  // 这一块并不是递归调用！！
   return mount.call(this, el, hydrating)
 };
 
@@ -7599,6 +7613,7 @@ function getOuterHTML (el) {
     return el.outerHTML
   } else {
     var container = document.createElement('div');
+    // 为什么这里要深copy一下呢？？
     container.appendChild(el.cloneNode(true));
     return container.innerHTML
   }

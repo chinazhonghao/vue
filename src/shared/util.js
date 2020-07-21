@@ -73,10 +73,12 @@ export function isPrimitive (value: any): boolean {
 /**
  * Create a cached version of a pure function.
  */
+// 创建一个函数的cache, 由于cache内容是input和output对应，因此传入的函数必须是纯函数，保证同样的输入具有同样的输出才行
 export function cached (fn: Function): Function {
   const cache = Object.create(null)
   return function cachedFn (str: string): any {
     const hit = cache[str]
+    // 对fn的调用不通过fn.call设置context了
     return hit || (cache[str] = fn(str))
   }
 }

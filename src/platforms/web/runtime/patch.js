@@ -9,4 +9,5 @@ import platformModules from 'web/runtime/modules/index'
 // built-in modules have been applied.
 const modules = platformModules.concat(baseModules)
 
+// 根据平台特性传入参数创建path函数
 export const patch: Function = createPatchFunction({ nodeOps, modules })

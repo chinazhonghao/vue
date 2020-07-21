@@ -32,6 +32,7 @@ export function renderMixin (Vue: Class<Component>) {
 
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
+    // ES6解构赋值
     const {
       render,
       staticRenderFns,
@@ -40,6 +41,7 @@ export function renderMixin (Vue: Class<Component>) {
 
     if (vm._isMounted) {
       // clone slot nodes on re-renders
+      // slot使用拷贝的方式，key应该是指定的slot的名称
       for (const key in vm.$slots) {
         vm.$slots[key] = cloneVNodes(vm.$slots[key])
       }
@@ -54,6 +56,7 @@ export function renderMixin (Vue: Class<Component>) {
     // render self
     let vnode
     try {
+      // 调用参数中的render函数，设置render中的this指向和createElement函数--终于知道_renderProxy属性的作用了
       vnode = render.call(vm._renderProxy, vm.$createElement)
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
@@ -72,6 +75,7 @@ export function renderMixin (Vue: Class<Component>) {
       // return previous vnode to prevent render error causing blank component
       vnode = vm._vnode
     }
+    // 为了防止报错
     // return empty vnode in case the render function errored out
     if (!(vnode instanceof VNode)) {
       if (process.env.NODE_ENV !== 'production' && Array.isArray(vnode)) {
@@ -240,6 +244,7 @@ export function resolveSlots (
         slot.push(child)
       }
     } else {
+      // 通过child.data.slot来判断是否是默认slot
       defaultSlot.push(child)
     }
   }

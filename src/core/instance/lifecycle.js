@@ -44,7 +44,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
   ): Component {
     const vm: Component = this
     vm.$el = el
-    // options.render大部分情况下并没有定义，这是从哪里来呢？？
+    // options.render大部分情况下并没有定义，这是从哪里来呢？？--从每个平台定义的$mount函数而来
     if (!vm.$options.render) {
       vm.$options.render = emptyVNode
       // 传入的options中template或者render函数需要设置至少一个
@@ -79,8 +79,10 @@ export function lifecycleMixin (Vue: Class<Component>) {
     return vm
   }
 
+  // 将VDOM渲染成真实的DOM
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
+    // 渲染DOM之前调用钩子函数
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate')
     }
@@ -108,6 +110,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
       vm.$parent.$el = vm.$el
     }
+    // 调用更新后钩子函数
     if (vm._isMounted) {
       callHook(vm, 'updated')
     }
