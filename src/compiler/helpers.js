@@ -54,6 +54,7 @@ export function addHandler (
   const handlers = events[name]
   /* istanbul ignore if */
   if (Array.isArray(handlers)) {
+    // important属性为true，则将回调函数放在回调队列的最前面，否则放在最后面
     important ? handlers.unshift(newHandler) : handlers.push(newHandler)
   } else if (handlers) {
     events[name] = important ? [newHandler, handlers] : [handlers, newHandler]

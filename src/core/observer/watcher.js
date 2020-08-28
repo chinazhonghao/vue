@@ -132,10 +132,13 @@ export default class Watcher {
       // 经过这次收集之后，将旧的dep删掉，怎么保证没有删错呢
       if (!this.newDepIds.has(dep.id)) {
         // 只是dep删掉了，对应的id并没有被删除？？--这块感觉是有bug的，会导致第二次depIds中存在id，无法再次添加进来
+        // 后续depIds直接就替换掉了，旧的ID后续并没有用到
+        // 1. 这也是双向关联的用处，在watcher teardown时可以将该watcher从对应的Dep中删除，避免无谓的分发更新
         dep.removeSub(this)
       }
     }
-    // 交换一下，意义在哪里呢？？--新旧交换
+    // 交换一下，意义在哪里呢？？--新旧交换每一轮收集之后就将无用的watcher删除掉
+    // 1. 从对应的Dep中将watcher删除
     let tmp = this.depIds
     this.depIds = this.newDepIds
     this.newDepIds = tmp

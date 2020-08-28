@@ -177,10 +177,12 @@ export function defineReactive (
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       // 在普通函数进行调用时，这个地方为假就不会进行依赖收集
+      // watcher先设置Dep.target，然后调用getter函数，就进入到这里
       if (Dep.target) {
         // 依赖收集 dependency
         // 父收集，子元素也进行收集？？对象有dep,属性也有自己的dep依赖收集
         dep.depend()
+        // 如果该属性值是一个对象，则属性值中有变化时也会触发watcher的相应
         if (childOb) {
           childOb.dep.depend()
         }
@@ -188,6 +190,7 @@ export function defineReactive (
           // 只收集到数组中的值，不再往下进行递归收集了？？
           for (let e, i = 0, l = value.length; i < l; i++) {
             e = value[i]
+            // 只有是一个对象才会有这个属性，observe函数中定义和添加
             e && e.__ob__ && e.__ob__.dep.depend()
           }
         }

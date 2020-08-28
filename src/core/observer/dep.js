@@ -32,6 +32,7 @@ export default class Dep {
   }
 
   // 检测Dep.target是否满足一系列的规则，然后将其添加到subs中
+  // 是一个双向收集过程，在该dep中添加watcher,同时在watcher的deps中添加该dep
   depend () {
     if (Dep.target) {
       Dep.target.addDep(this)

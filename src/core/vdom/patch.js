@@ -54,7 +54,7 @@ export function createPatchFunction (backend) {
   const cbs = {}
 
   // 解构赋值，nodeOps中包含了一系列操作DOM的方法
-  // modules中包含了模块的钩子函数的实现
+  // modules中包含了模块的钩子函数的实现--主要是指令的钩子函数
   const { modules, nodeOps } = backend
 
   for (i = 0; i < hooks.length; ++i) {

@@ -15,6 +15,7 @@ import {
   baseWarn
 } from '../helpers'
 
+// 自定义指令、v-on的符号形式，v-bind的符号形式, 将这些前缀去除
 export const dirRE = /^v-|^@|^:/
 export const forAliasRE = /(.*)\s+(?:in|of)\s+(.*)/
 export const forIteratorRE = /\(([^,]*),([^,]*)(?:,([^,]*))?\)/
