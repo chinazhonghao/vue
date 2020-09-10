@@ -8,6 +8,7 @@ import { shouldDecodeTags, shouldDecodeNewlines } from 'web/util/compat'
 import { compileToFunctions } from 'web/compiler/index'
 
 // 创建一个缓存函数对象，可以对同一个ID的查询结果进行缓存
+// cached(function f(){}); 缓存id和f(id)结果
 const idToTemplate = cached(id => {
   const el = query(id)
   return el && el.innerHTML
@@ -59,12 +60,14 @@ Vue.prototype.$mount = function (
       isFromDOM = true
       template = getOuterHTML(el)
     }
+    // 经过上述查找之后，这里会template内容进行解析，生成对应的render函数
     if (template) {
       const { render, staticRenderFns } = compileToFunctions(template, {
         warn,
         isFromDOM,
         shouldDecodeTags,
         shouldDecodeNewlines,
+        // delimiters可以改变插值选项，默认是{{}},可以改变成其他的
         delimiters: options.delimiters
       }, this)
       options.render = render

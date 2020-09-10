@@ -25,6 +25,7 @@ export function optimize (root: ?ASTElement, options: CompilerOptions) {
   // first pass: mark all non-static nodes.
   markStatic(root)
   // second pass: mark static roots.
+  // 根节点不允许在for循环中，因此isInFor传了false
   markStaticRoots(root, false)
 }
 
@@ -40,6 +41,7 @@ function markStatic (node: ASTNode) {
   if (node.type === 1) {
     for (let i = 0, l = node.children.length; i < l; i++) {
       const child = node.children[i]
+      // 递归标记子节点
       markStatic(child)
       if (!child.static) {
         node.static = false
@@ -56,6 +58,7 @@ function markStaticRoots (node: ASTNode, isInFor: boolean) {
       return
     }
     if (node.children) {
+      // 递归标记子节点是否是静态的
       for (let i = 0, l = node.children.length; i < l; i++) {
         markStaticRoots(node.children[i], !!node.for)
       }
@@ -67,6 +70,7 @@ function isStatic (node: ASTNode): boolean {
   if (node.type === 2) { // expression
     return false
   }
+  // 文本节点
   if (node.type === 3) { // text
     return true
   }
@@ -75,6 +79,6 @@ function isStatic (node: ASTNode): boolean {
     !node.if && !node.for && // not v-if or v-for or v-else
     !isBuiltInTag(node.tag) && // not a built-in
     isPlatformReservedTag(node.tag) && // not a component
-    Object.keys(node).every(isStaticKey)
+    Object.keys(node).every(isStaticKey) // 这里是为什么呢？？这一块是不是有问题，根据cache函数，如果不存在就会添加进去，应该是有问题的
   ))
 }

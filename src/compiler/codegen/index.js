@@ -24,6 +24,7 @@ export function generate (
   const currentStaticRenderFns: Array<string> = staticRenderFns = []
   currentOptions = options
   warn = options.warn || baseWarn
+  // 这两个主要是处理class属性的：1 staticClass， class(动态绑定的)
   transforms = pluckModuleFunction(options.modules, 'transformCode')
   dataGenFns = pluckModuleFunction(options.modules, 'genData')
   platformDirectives = options.directives || {}
@@ -162,6 +163,7 @@ function genData (el: ASTElement): string | void {
       }]}`
     }
   }
+  // 将data的末尾逗号去除，并添加最后的大括号
   data = data.replace(/,$/, '') + '}'
   // v-bind data wrap
   if (el.wrapData) {
@@ -242,5 +244,6 @@ function genProps (props: Array<{ name: string, value: string }>): string {
     const prop = props[i]
     res += `"${prop.name}":${prop.value},`
   }
+  // 去除字符串最后的逗号
   return res.slice(0, -1)
 }

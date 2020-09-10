@@ -8,6 +8,7 @@ import {
 } from 'compiler/helpers'
 
 function transformNode (el: ASTElement, options: CompilerOptions) {
+  // 这里告警提示函数，这样获取值有点多余了把，毕竟从上层调用就可以获取到了
   const warn = options.warn || baseWarn
   const staticClass = getAndRemoveAttr(el, 'class')
   if (process.env.NODE_ENV !== 'production' && staticClass) {
@@ -29,6 +30,7 @@ function transformNode (el: ASTElement, options: CompilerOptions) {
   }
 }
 
+// 增加class属性，有静态属性和绑定属性
 function genData (el: ASTElement): string {
   let data = ''
   if (el.staticClass) {

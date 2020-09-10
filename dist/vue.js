@@ -85,6 +85,7 @@ function isPrimitive (value) {
  * Create a cached version of a pure function.
  */
 // 创建一个函数的cache, 由于cache内容是input和output对应，因此传入的函数必须是纯函数，保证同样的输入具有同样的输出才行
+// 缓存input到output的关系
 function cached (fn) {
   var cache = Object.create(null);
   return function cachedFn (str) {
@@ -5862,6 +5863,7 @@ var ncname = '[a-zA-Z_][\\w\\-\\.]*';
 var qnameCapture = '((?:' + ncname + '\\:)?' + ncname + ')';
 var startTagOpen = new RegExp('^<' + qnameCapture);
 var startTagClose = /^\s*(\/?)>/;
+// 匹配任意的HTML标签的结束符号，</XXX>
 var endTag = new RegExp('^<\\/' + qnameCapture + '[^>]*>');
 var doctype = /^<!DOCTYPE [^>]+>/i;
 
@@ -5915,6 +5917,7 @@ function parseHTML (html, options) {
         }
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        // 条件测试，很少用的一种功能
         if (/^<!\[/.test(html)) {
           var conditionalEnd = html.indexOf(']>');
 
@@ -5924,15 +5927,19 @@ function parseHTML (html, options) {
           }
         }
 
-        // Doctype:
+        // Doctype: <!DOCUTYPE...>
         var doctypeMatch = html.match(doctype);
         if (doctypeMatch) {
           advance(doctypeMatch[0].length);
           continue
         }
 
-        // End tag:
+        // End tag: 匹配任意标签的结束符号，这里都是从字符串开始处进行匹配
         var endTagMatch = html.match(endTag);
+        /**
+         * '</html>ad'.match(endTag) => ["</html>", 0, "</html>ad", undefined]
+         *                                target,   index, input,    groups
+         */
         if (endTagMatch) {
           var curIndex = index;
           advance(endTagMatch[0].length);
@@ -5989,6 +5996,7 @@ function parseHTML (html, options) {
   // Clean up any remaining tags
   parseEndTag();
 
+  // 移动下标，并缩短html字符串
   function advance (n) {
     index += n;
     html = html.substring(n);
@@ -6227,7 +6235,7 @@ function parseText (
 }
 
 /*  */
-
+// 通过控制台进行错误展示
 function baseWarn (msg) {
   console.error(("[Vue parser]: " + msg));
 }
@@ -6241,10 +6249,12 @@ function pluckModuleFunction (
     : []
 }
 
+// 添加prop
 function addProp (el, name, value) {
   (el.props || (el.props = [])).push({ name: name, value: value });
 }
 
+// 添加attr
 function addAttr (el, name, value) {
   (el.attrs || (el.attrs = [])).push({ name: name, value: value });
 }
@@ -6268,10 +6278,12 @@ function addHandler (
 ) {
   // check capture modifier
   if (modifiers && modifiers.capture) {
+    // 这里为什么把这个属性删除掉呢
     delete modifiers.capture;
     name = '!' + name; // mark the event as captured
   }
   var events;
+  // 区分事件类型：native 和 非native
   if (modifiers && modifiers.native) {
     delete modifiers.native;
     events = el.nativeEvents || (el.nativeEvents = {});
@@ -6279,8 +6291,10 @@ function addHandler (
     events = el.events || (el.events = {});
   }
   var newHandler = { value: value, modifiers: modifiers };
+  // 保存原先的事件函数
   var handlers = events[name];
   /* istanbul ignore if */
+  // 这里处理的复杂了，直接初始化成空数组就可以了
   if (Array.isArray(handlers)) {
     // important属性为true，则将回调函数放在回调队列的最前面，否则放在最后面
     important ? handlers.unshift(newHandler) : handlers.push(newHandler);
@@ -6311,10 +6325,13 @@ function getBindingAttr (
 
 function getAndRemoveAttr (el, name) {
   var val;
+  // attraMap中存放的是attr的name和value
   if ((val = el.attrsMap[name]) != null) {
+    // 只是从attrsList中删除掉该值
     var list = el.attrsList;
     for (var i = 0, l = list.length; i < l; i++) {
       if (list[i].name === name) {
+        // 移除该值
         list.splice(i, 1);
         break
       }
@@ -6385,10 +6402,12 @@ function parse (
         attrs = guardIESVGBug(attrs);
       }
 
+      // type: 1--普通节点（有子节点）<span>123</span>就是有两个节点，2--文本节点但是有{{}}, 3--静态文本节点
       var element = {
         type: 1,
         tag: tag,
         attrsList: attrs,
+        // 可以看出来attrsMap和attrsList的关系
         attrsMap: makeAttrsMap(attrs),
         parent: currentParent,
         children: []
@@ -6411,6 +6430,7 @@ function parse (
         preTransforms[i](element, options);
       }
 
+      // 是否有v-pre指令，当有v-pre指令时会跳过编译过程
       if (!inVPre) {
         processPre(element);
         if (element.pre) {
@@ -6475,6 +6495,7 @@ function parse (
       }
       if (currentParent && !element.forbidden) {
         if (element.else) {
+          // 不是放到父组件的children列表中，而是放在对应的 v-if的元素中
           processElse(element, currentParent);
         } else {
           currentParent.children.push(element);
@@ -6522,6 +6543,7 @@ function parse (
       }
       text = inPre || text.trim()
         ? decodeHTMLCached(text)
+        // 处理空白符
         // only preserve whitespace if its not right after a starting tag
         : preserveWhitespace && currentParent.children.length ? ' ' : '';
       if (text) {
@@ -6597,6 +6619,9 @@ function processFor (el) {
     el.for = inMatch[2].trim();
     var alias = inMatch[1].trim();
     var iteratorMatch = alias.match(forIteratorRE);
+    /**
+     * v-for的使用方法https://cn.vuejs.org/v2/api/#v-for
+     */
     if (iteratorMatch) {
       el.alias = iteratorMatch[1].trim();
       el.iterator1 = iteratorMatch[2].trim();
@@ -6624,6 +6649,7 @@ function processElse (el, parent) {
   if (prev && prev.if) {
     prev.elseBlock = el;
   } else {
+    // v-else 没有对应的v-if进行报错
     warn$1(
       ("v-else used on element <" + (el.tag) + "> without corresponding v-if.")
     );
@@ -6664,21 +6690,25 @@ function processAttrs (el) {
   for (i = 0, l = list.length; i < l; i++) {
     name = list[i].name;
     value = list[i].value;
+    // 指令测试v-*
     if (dirRE.test(name)) {
       // mark element as dynamic
       el.hasBindings = true;
-      // modifiers
+      // modifiers 有些指令有modifies属性，这也是指令的通用定义
       modifiers = parseModifiers(name);
       if (modifiers) {
+        // 如果有modifies,name.modify1.modify2..., 这里是提取指令的名称
         name = name.replace(modifierRE, '');
       }
       if (bindRE.test(name)) { // v-bind
+        // 获取bind的prop名称v-bind:name=""
         name = name.replace(bindRE, '');
         if (modifiers && modifiers.prop) {
           isProp = true;
           name = camelize(name);
           if (name === 'innerHtml') { name = 'innerHTML'; }
         }
+        // 检测是添加prop还是attr; value, selected, checked, muted这四个是必须prop的
         if (isProp || platformMustUseProp(name)) {
           addProp(el, name, value);
         } else {
@@ -6713,6 +6743,7 @@ function processAttrs (el) {
   }
 }
 
+// 判断是否在for循环中
 function checkInFor (el) {
   var parent = el;
   while (parent) {
@@ -6802,6 +6833,7 @@ function optimize (root, options) {
   // first pass: mark all non-static nodes.
   markStatic(root);
   // second pass: mark static roots.
+  // 根节点不允许在for循环中，因此isInFor传了false
   markStaticRoots(root, false);
 }
 
@@ -6817,6 +6849,7 @@ function markStatic (node) {
   if (node.type === 1) {
     for (var i = 0, l = node.children.length; i < l; i++) {
       var child = node.children[i];
+      // 递归标记子节点
       markStatic(child);
       if (!child.static) {
         node.static = false;
@@ -6833,6 +6866,7 @@ function markStaticRoots (node, isInFor) {
       return
     }
     if (node.children) {
+      // 递归标记子节点是否是静态的
       for (var i = 0, l = node.children.length; i < l; i++) {
         markStaticRoots(node.children[i], !!node.for);
       }
@@ -6844,6 +6878,7 @@ function isStatic (node) {
   if (node.type === 2) { // expression
     return false
   }
+  // 文本节点
   if (node.type === 3) { // text
     return true
   }
@@ -6852,7 +6887,7 @@ function isStatic (node) {
     !node.if && !node.for && // not v-if or v-for or v-else
     !isBuiltInTag(node.tag) && // not a built-in
     isPlatformReservedTag(node.tag) && // not a component
-    Object.keys(node).every(isStaticKey)
+    Object.keys(node).every(isStaticKey) // 这里是为什么呢？？这一块是不是有问题，根据cache函数，如果不存在就会添加进去，应该是有问题的
   ))
 }
 
@@ -6861,6 +6896,7 @@ function isStatic (node) {
 var simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['.*?'\]|\[".*?"\]|\[\d+\]|\[[A-Za-z_$][\w$]*\])*$/;
 
 // keyCode aliases
+// 按键和点击关联，这里对按键进行定义
 var keyCodes = {
   esc: 27,
   tab: 9,
@@ -6873,6 +6909,7 @@ var keyCodes = {
   'delete': [8, 46]
 };
 
+// 对事件修饰符的封装
 var modifierCode = {
   stop: '$event.stopPropagation();',
   prevent: '$event.preventDefault();',
@@ -6895,6 +6932,7 @@ function genHandler (
   } else if (Array.isArray(handler)) {
     return ("[" + (handler.map(genHandler).join(',')) + "]")
   } else if (!handler.modifiers) {
+    // 事件监听中没有使用修饰符，判断是使用了函数还是直接写了表达式
     return simplePathRE.test(handler.value)
       ? handler.value
       : ("function($event){" + (handler.value) + "}")
@@ -6902,6 +6940,7 @@ function genHandler (
     var code = '';
     var keys = [];
     for (var key in handler.modifiers) {
+      // 根据修饰符添加对应的代码
       if (modifierCode[key]) {
         code += modifierCode[key];
       } else {
@@ -6909,8 +6948,10 @@ function genHandler (
       }
     }
     if (keys.length) {
+      // 如果不是目标按键则直接退出，不同执行后续操作
       code = genKeyFilter(keys) + code;
     }
+    // handler.value中是用户定义的事件响应执行体
     var handlerCode = simplePathRE.test(handler.value)
       ? handler.value + '($event)'
       : handler.value;
@@ -6923,12 +6964,15 @@ function genKeyFilter (keys) {
     ? normalizeKeyCode(keys[0])
     : Array.prototype.concat.apply([], keys.map(normalizeKeyCode));
   if (Array.isArray(code)) {
+    // 生成执行代码
     return ("if(" + (code.map(function (c) { return ("$event.keyCode!==" + c); }).join('&&')) + ")return;")
   } else {
+    // 如果按键不是目标按键则直接退出，不用执行后续操作
     return ("if($event.keyCode!==" + code + ")return;")
   }
 }
 
+// 点击和按键关联
 function normalizeKeyCode (key) {
   return (
     parseInt(key, 10) || // number keyCode
@@ -6969,6 +7013,7 @@ function generate (
   var currentStaticRenderFns = staticRenderFns = [];
   currentOptions = options;
   warn$2 = options.warn || baseWarn;
+  // 这两个主要是处理class属性的：1 staticClass， class(动态绑定的)
   transforms$1 = pluckModuleFunction(options.modules, 'transformCode');
   dataGenFns = pluckModuleFunction(options.modules, 'genData');
   platformDirectives$1 = options.directives || {};
@@ -7099,6 +7144,7 @@ function genData (el) {
       data += "inlineTemplate:{render:function(){" + (inlineRenderFns.render) + "},staticRenderFns:[" + (inlineRenderFns.staticRenderFns.map(function (code) { return ("function(){" + code + "}"); }).join(',')) + "]}";
     }
   }
+  // 将data的末尾逗号去除，并添加最后的大括号
   data = data.replace(/,$/, '') + '}';
   // v-bind data wrap
   if (el.wrapData) {
@@ -7171,6 +7217,7 @@ function genProps (props) {
     var prop = props[i];
     res += "\"" + (prop.name) + "\":" + (prop.value) + ",";
   }
+  // 去除字符串最后的逗号
   return res.slice(0, -1)
 }
 
@@ -7179,11 +7226,14 @@ function genProps (props) {
 /**
  * Compile a template.
  */
+// 实际生成AST的地方，options通过上层调用一层层传递
 function compile$1 (
   template,
   options
 ) {
+  // 1. HTML -> AST
   var ast = parse(template.trim(), options);
+  // 2. 标记AST上的静态节点
   optimize(ast, options);
   var code = generate(ast, options);
   return {
@@ -7271,6 +7321,7 @@ function checkExpression (exp, text, errors) {
 /*  */
 
 function transformNode (el, options) {
+  // 这里告警提示函数，这样获取值有点多余了把，毕竟从上层调用就可以获取到了
   var warn = options.warn || baseWarn;
   var staticClass = getAndRemoveAttr(el, 'class');
   if ("development" !== 'production' && staticClass) {
@@ -7292,6 +7343,7 @@ function transformNode (el, options) {
   }
 }
 
+// 增加class属性，有静态属性和绑定属性
 function genData$1 (el) {
   var data = '';
   if (el.staticClass) {
@@ -7311,6 +7363,7 @@ var klass$1 = {
 
 /*  */
 
+// style的处理方式和class的处理方式不相同，为啥要这样呢
 function transformNode$1 (el) {
   var styleBinding = getBindingAttr(el, 'style', false /* getStatic */);
   if (styleBinding) {
@@ -7516,6 +7569,7 @@ var cache = Object.create(null);
 
 var baseOptions = {
   isIE: isIE,
+  // 编译输出结果
   expectHTML: true,
   modules: modules$1,
   staticKeys: genStaticKeys(modules$1),
@@ -7527,6 +7581,7 @@ var baseOptions = {
   isPreTag: isPreTag
 };
 
+// 传入模版和选项，扩展了基础选项后进行编译
 function compile$$1 (
   template,
   options
@@ -7599,6 +7654,7 @@ function makeFunction (code) {
 
 // Vue来源
 // 创建一个缓存函数对象，可以对同一个ID的查询结果进行缓存
+// cached(function f(){}); 缓存id和f(id)结果
 var idToTemplate = cached(function (id) {
   var el = query(id);
   return el && el.innerHTML

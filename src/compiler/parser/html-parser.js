@@ -35,6 +35,7 @@ const ncname = '[a-zA-Z_][\\w\\-\\.]*'
 const qnameCapture = '((?:' + ncname + '\\:)?' + ncname + ')'
 const startTagOpen = new RegExp('^<' + qnameCapture)
 const startTagClose = /^\s*(\/?)>/
+// 匹配任意的HTML标签的结束符号，</XXX>
 const endTag = new RegExp('^<\\/' + qnameCapture + '[^>]*>')
 const doctype = /^<!DOCTYPE [^>]+>/i
 
@@ -88,6 +89,7 @@ export function parseHTML (html, options) {
         }
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        // 条件测试，很少用的一种功能
         if (/^<!\[/.test(html)) {
           const conditionalEnd = html.indexOf(']>')
 
@@ -97,15 +99,19 @@ export function parseHTML (html, options) {
           }
         }
 
-        // Doctype:
+        // Doctype: <!DOCUTYPE...>
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
           advance(doctypeMatch[0].length)
           continue
         }
 
-        // End tag:
+        // End tag: 匹配任意标签的结束符号，这里都是从字符串开始处进行匹配
         const endTagMatch = html.match(endTag)
+        /**
+         * '</html>ad'.match(endTag) => ["</html>", 0, "</html>ad", undefined]
+         *                                target,   index, input,    groups
+         */
         if (endTagMatch) {
           const curIndex = index
           advance(endTagMatch[0].length)
@@ -162,6 +168,7 @@ export function parseHTML (html, options) {
   // Clean up any remaining tags
   parseEndTag()
 
+  // 移动下标，并缩短html字符串
   function advance (n) {
     index += n
     html = html.substring(n)

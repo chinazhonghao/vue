@@ -75,10 +75,12 @@ export function parse (
         attrs = guardIESVGBug(attrs)
       }
 
+      // type: 1--普通节点（有子节点）<span>123</span>就是有两个节点，2--文本节点但是有{{}}, 3--静态文本节点
       const element: ASTElement = {
         type: 1,
         tag,
         attrsList: attrs,
+        // 可以看出来attrsMap和attrsList的关系
         attrsMap: makeAttrsMap(attrs),
         parent: currentParent,
         children: []
@@ -101,6 +103,7 @@ export function parse (
         preTransforms[i](element, options)
       }
 
+      // 是否有v-pre指令，当有v-pre指令时会跳过编译过程
       if (!inVPre) {
         processPre(element)
         if (element.pre) {
@@ -165,6 +168,7 @@ export function parse (
       }
       if (currentParent && !element.forbidden) {
         if (element.else) {
+          // 不是放到父组件的children列表中，而是放在对应的 v-if的元素中
           processElse(element, currentParent)
         } else {
           currentParent.children.push(element)
@@ -212,6 +216,7 @@ export function parse (
       }
       text = inPre || text.trim()
         ? decodeHTMLCached(text)
+        // 处理空白符
         // only preserve whitespace if its not right after a starting tag
         : preserveWhitespace && currentParent.children.length ? ' ' : ''
       if (text) {
@@ -287,6 +292,9 @@ function processFor (el) {
     el.for = inMatch[2].trim()
     const alias = inMatch[1].trim()
     const iteratorMatch = alias.match(forIteratorRE)
+    /**
+     * v-for的使用方法https://cn.vuejs.org/v2/api/#v-for
+     */
     if (iteratorMatch) {
       el.alias = iteratorMatch[1].trim()
       el.iterator1 = iteratorMatch[2].trim()
@@ -314,6 +322,7 @@ function processElse (el, parent) {
   if (prev && prev.if) {
     prev.elseBlock = el
   } else if (process.env.NODE_ENV !== 'production') {
+    // v-else 没有对应的v-if进行报错
     warn(
       `v-else used on element <${el.tag}> without corresponding v-if.`
     )
@@ -354,21 +363,25 @@ function processAttrs (el) {
   for (i = 0, l = list.length; i < l; i++) {
     name = list[i].name
     value = list[i].value
+    // 指令测试v-*
     if (dirRE.test(name)) {
       // mark element as dynamic
       el.hasBindings = true
-      // modifiers
+      // modifiers 有些指令有modifies属性，这也是指令的通用定义
       modifiers = parseModifiers(name)
       if (modifiers) {
+        // 如果有modifies,name.modify1.modify2..., 这里是提取指令的名称
         name = name.replace(modifierRE, '')
       }
       if (bindRE.test(name)) { // v-bind
+        // 获取bind的prop名称v-bind:name=""
         name = name.replace(bindRE, '')
         if (modifiers && modifiers.prop) {
           isProp = true
           name = camelize(name)
           if (name === 'innerHtml') name = 'innerHTML'
         }
+        // 检测是添加prop还是attr; value, selected, checked, muted这四个是必须prop的
         if (isProp || platformMustUseProp(name)) {
           addProp(el, name, value)
         } else {
@@ -403,6 +416,7 @@ function processAttrs (el) {
   }
 }
 
+// 判断是否在for循环中
 function checkInFor (el: ASTElement): boolean {
   let parent = el
   while (parent) {
