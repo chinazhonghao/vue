@@ -1,5 +1,5 @@
 /* @flow */
-
+// VNode中含有对应的DOM节点
 export default class VNode {
   tag: string | void;
   data: VNodeData | void;

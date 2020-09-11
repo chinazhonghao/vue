@@ -3,6 +3,7 @@
 import { inBrowser } from 'core/util/env'
 import { makeMap } from 'shared/util'
 
+// HTML标签的命名空间
 export const namespaceMap = {
   svg: 'http://www.w3.org/2000/svg',
   math: 'http://www.w3.org/1998/Math/MathML'

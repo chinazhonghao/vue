@@ -66,6 +66,7 @@ export function hasOwn (obj: Object, key: string): boolean {
 /**
  * Check if value is primitive
  */
+// 这个命名也太不清楚了，用来判断value的类型是不是string或者number
 export function isPrimitive (value: any): boolean {
   return typeof value === 'string' || typeof value === 'number'
 }

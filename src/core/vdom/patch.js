@@ -20,6 +20,8 @@ import { registerRef } from './modules/ref'
 
 const emptyData = {}
 const emptyNode = new VNode('', emptyData, [])
+
+// 生命周期的hook
 const hooks = ['create', 'update', 'postpatch', 'remove', 'destroy']
 
 function isUndef (s) {
@@ -30,6 +32,7 @@ function isDef (s) {
   return s != null
 }
 
+// 判断是不是同一个node, 1. key, 2. tag, 3. isComment, 4. 同时有没有data选项
 function sameVnode (vnode1, vnode2) {
   return (
     vnode1.key === vnode2.key &&
@@ -39,6 +42,7 @@ function sameVnode (vnode1, vnode2) {
   )
 }
 
+// 对children的key属性进行和index的映射
 function createKeyToOldIdx (children, beginIdx, endIdx) {
   let i, key
   const map = {}
@@ -57,6 +61,8 @@ export function createPatchFunction (backend) {
   // modules中包含了模块的钩子函数的实现--主要是指令的钩子函数
   const { modules, nodeOps } = backend
 
+  // 将各个生命周期函数汇聚起来，这个生命周期的hook难道不需要有个顺序吗
+  // 在hook里面修改状态了，岂不是要下个循环才能获取到？？
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
@@ -64,10 +70,12 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 清空elm
   function emptyNodeAt (elm) {
     return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
   }
 
+  // 这个是干嘛的？？
   function createRmCb (childElm, listeners) {
     function remove () {
       if (--remove.listeners === 0) {

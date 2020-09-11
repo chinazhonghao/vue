@@ -3,6 +3,7 @@
 import { resolveAsset } from 'core/util/options'
 import { mergeVNodeHook } from 'core/vdom/helpers'
 
+// directives的生命周期函数
 export default {
   create: function bindDirectives (oldVnode: VNodeWithData, vnode: VNodeWithData) {
     let hasInsert = false

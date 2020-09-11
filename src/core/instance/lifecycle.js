@@ -6,6 +6,7 @@ import { observerState } from '../observer/index'
 import { warn, validateProp, remove, noop } from '../util/index'
 import { resolveSlots } from './render'
 
+// 指向当前活跃的实例-以组件为单位
 export let activeInstance: any = null
 
 // 这里就只是初始化一些属性，并没有相关的生命周期的调用

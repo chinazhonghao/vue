@@ -2,6 +2,7 @@
 
 import { remove } from 'shared/util'
 
+// ref的生命周期更新函数
 export default {
   create (_: any, vnode: VNodeWithData) {
     registerRef(vnode)

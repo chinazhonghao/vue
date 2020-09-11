@@ -2,6 +2,7 @@
 
 import { namespaceMap } from 'web/util/index'
 
+// DOM相关操作
 export function createElement (tagName: string): Element {
   return document.createElement(tagName)
 }

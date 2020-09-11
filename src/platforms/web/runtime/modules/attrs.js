@@ -67,6 +67,7 @@ function setAttr (el: Element, key: string, value: any) {
   }
 }
 
+// attrs的生命周期函数
 export default {
   create: updateAttrs,
   update: updateAttrs
