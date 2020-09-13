@@ -33,6 +33,7 @@ extend(Vue.options.components, platformComponents)
 Vue.prototype.__patch__ = config._isServer ? noop : patch
 
 // wrap mount -- 可以被runtime-only的编译方式直接复用的；hydrating和服务端渲染有关
+// 在上一层进一步被封装
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean

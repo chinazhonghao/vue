@@ -77,6 +77,7 @@ function hasOwn (obj, key) {
 /**
  * Check if value is primitive
  */
+// 这个命名也太不清楚了，用来判断value的类型是不是string或者number
 function isPrimitive (value) {
   return typeof value === 'string' || typeof value === 'number'
 }
@@ -1559,7 +1560,7 @@ function proxy (vm, key) {
 }
 
 /*  */
-
+// VNode中含有对应的DOM节点
 var VNode = function VNode (
   tag,
   data,
@@ -1612,6 +1613,7 @@ function cloneVNode (vnode) {
     vnode.componentOptions
   );
   cloned.isStatic = vnode.isStatic;
+  // 这里key设置成一样不会有更新上的问题吗？？
   cloned.key = vnode.key;
   cloned.isCloned = true;
   return cloned
@@ -1782,6 +1784,7 @@ function fnInvoker (o) {
 
 /*  */
 
+// 指向当前活跃的实例-以组件为单位
 var activeInstance = null;
 
 // 这里就只是初始化一些属性，并没有相关的生命周期的调用
@@ -3727,6 +3730,7 @@ function stringifyClass (value) {
 
 /*  */
 
+// HTML标签的命名空间
 var namespaceMap = {
   svg: 'http://www.w3.org/2000/svg',
   math: 'http://www.w3.org/1998/Math/MathML'
@@ -3843,6 +3847,7 @@ function query (el) {
 
 /*  */
 
+// DOM相关操作
 function createElement$1 (tagName) {
   return document.createElement(tagName)
 }
@@ -3914,6 +3919,7 @@ var nodeOps = Object.freeze({
 
 /*  */
 
+// ref的生命周期更新函数
 var ref = {
   create: function create (_, vnode) {
     registerRef(vnode);
@@ -3971,6 +3977,8 @@ function registerRef (vnode, isRemoval) {
 
 var emptyData = {};
 var emptyNode = new VNode('', emptyData, []);
+
+// 生命周期的hook
 var hooks$1 = ['create', 'update', 'postpatch', 'remove', 'destroy'];
 
 function isUndef (s) {
@@ -3981,6 +3989,7 @@ function isDef (s) {
   return s != null
 }
 
+// 判断是不是同一个node, 1. key, 2. tag, 3. isComment, 4. 同时有没有data选项
 function sameVnode (vnode1, vnode2) {
   return (
     vnode1.key === vnode2.key &&
@@ -3990,6 +3999,7 @@ function sameVnode (vnode1, vnode2) {
   )
 }
 
+// 对children的key属性进行和index的映射
 function createKeyToOldIdx (children, beginIdx, endIdx) {
   var i, key;
   var map = {};
@@ -4009,6 +4019,8 @@ function createPatchFunction (backend) {
   var modules = backend.modules;
   var nodeOps = backend.nodeOps;
 
+  // 将各个生命周期函数汇聚起来，这个生命周期的hook难道不需要有个顺序吗
+  // 在hook里面修改状态了，岂不是要下个循环才能获取到？？
   for (i = 0; i < hooks$1.length; ++i) {
     cbs[hooks$1[i]] = [];
     for (j = 0; j < modules.length; ++j) {
@@ -4016,10 +4028,12 @@ function createPatchFunction (backend) {
     }
   }
 
+  // 根据DOM定义一个VNode
   function emptyNodeAt (elm) {
     return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
   }
 
+  // 这个是干嘛的？？
   function createRmCb (childElm, listeners) {
     function remove$$1 () {
       if (--remove$$1.listeners === 0) {
@@ -4045,8 +4059,10 @@ function createPatchFunction (backend) {
       // it should've created a child instance and mounted it. the child
       // component also has set the placeholder vnode's elm.
       // in that case we can just return the element and be done.
+      // 父组件和子组件初始化顺序问题？？？
       if (isDef(i = vnode.child)) {
         initComponent(vnode, insertedVnodeQueue);
+        // 返回的是一个Node
         return vnode.elm
       }
     }
@@ -4105,6 +4121,7 @@ function createPatchFunction (backend) {
       cbs.create[i$1](emptyNode, vnode);
     }
     i = vnode.data.hook; // Reuse variable
+    // 这里是用户自定义的hook函数，通过option传入Vue构造函数
     if (isDef(i)) {
       if (i.create) { i.create(emptyNode, vnode); }
       if (i.insert) { insertedVnodeQueue.push(vnode); }
@@ -4115,6 +4132,7 @@ function createPatchFunction (backend) {
     if (vnode.data.pendingInsert) {
       insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert);
     }
+    // 获取child的挂载点，这里为什么要重新设置父元素的Node呢？？
     vnode.elm = vnode.child.$el;
     if (isPatchable(vnode)) {
       invokeCreateHooks(vnode, insertedVnodeQueue);
@@ -4151,11 +4169,13 @@ function createPatchFunction (backend) {
 
   function invokeDestroyHook (vnode) {
     var i, j;
+    // 看来这个data属性很重要啊，需要了解内部的数据结构
     var data = vnode.data;
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.destroy)) { i(vnode); }
       for (i = 0; i < cbs.destroy.length; ++i) { cbs.destroy[i](vnode); }
     }
+    // 这个child与children有什么关系呢？？
     if (isDef(i = vnode.child) && !data.keepAlive) {
       invokeDestroyHook(i._vnode);
     }
@@ -4208,6 +4228,7 @@ function createPatchFunction (backend) {
     }
   }
 
+  // parentElm表示不变的根节点
   function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
     var oldStartIdx = 0;
     var newStartIdx = 0;
@@ -4222,6 +4243,7 @@ function createPatchFunction (backend) {
     // removeOnly is a special flag used only by <transition-group>
     // to ensure removed elements stay in correct relative positions
     // during leaving transitions
+    // 对于transition-group只能删除操作，不能移动DOM节点（循环移动）
     var canMove = !removeOnly;
 
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
@@ -4249,8 +4271,10 @@ function createPatchFunction (backend) {
         newStartVnode = newCh[++newStartIdx];
       } else {
         if (isUndef(oldKeyToIdx)) { oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx); }
+        // 通过key属性判断新节点在旧节点中的位置
         idxInOld = isDef(newStartVnode.key) ? oldKeyToIdx[newStartVnode.key] : null;
         if (isUndef(idxInOld)) { // New element
+          // 新节点，根据VNode创建新Node
           nodeOps.insertBefore(parentElm, createElm(newStartVnode, insertedVnodeQueue), oldStartVnode.elm);
           newStartVnode = newCh[++newStartIdx];
         } else {
@@ -4268,6 +4292,7 @@ function createPatchFunction (backend) {
             newStartVnode = newCh[++newStartIdx];
           } else {
             patchVnode(elmToMove, newStartVnode, insertedVnodeQueue);
+            // 解除引用
             oldCh[idxInOld] = undefined;
             canMove && nodeOps.insertBefore(parentElm, newStartVnode.elm, oldStartVnode.elm);
             newStartVnode = newCh[++newStartIdx];
@@ -4275,8 +4300,10 @@ function createPatchFunction (backend) {
         }
       }
     }
+    // 对剩余元素的处理
     if (oldStartIdx > oldEndIdx) {
       before = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm;
+      // 找到最后一个元素，然后将所有元素添加到其前面；之所以这样是因为最后一个元素有可能以及patch好了，中间有部分元素未能patch
       addVnodes(parentElm, before, newCh, newStartIdx, newEndIdx, insertedVnodeQueue);
     } else if (newStartIdx > newEndIdx) {
       removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
@@ -4300,6 +4327,7 @@ function createPatchFunction (backend) {
     }
     var i, hook;
     var hasData = isDef(i = vnode.data);
+    // 这个钩子函数怎么没有暴露出来呢？？
     if (hasData && isDef(hook = i.hook) && isDef(i = hook.prepatch)) {
       i(oldVnode, vnode);
     }
@@ -4405,6 +4433,7 @@ function createPatchFunction (backend) {
         vnode.tag === nodeOps.tagName(node).toLowerCase()
       )
     } else {
+      // 文本节点
       return _toString(vnode.text) === node.data
     }
   }
@@ -4481,6 +4510,7 @@ function createPatchFunction (backend) {
 
 /*  */
 
+// directives的生命周期函数
 var directives = {
   create: function bindDirectives (oldVnode, vnode) {
     var hasInsert = false;
@@ -4619,6 +4649,7 @@ function setAttr (el, key, value) {
   }
 }
 
+// attrs的生命周期函数
 var attrs = {
   create: updateAttrs,
   update: updateAttrs
@@ -5243,6 +5274,9 @@ var platformModules = [
 
 /*  */
 
+// 含有ref和directives的生命周期更新函数
+// 含有attrs, class, props, events, style, transition生命周期函数
+// 这个modules的后缀命名不太恰当，无法反应实际意义
 // the directive module should be applied last, after all
 // built-in modules have been applied.
 var modules = platformModules.concat(baseModules);
@@ -7592,6 +7626,9 @@ function compile$$1 (
   return compile$1(template, options)
 }
 
+/**
+ * 将template编译成render函数
+ */
 function compileToFunctions (
   template,
   options,
@@ -7627,6 +7664,7 @@ function compileToFunctions (
   var l = compiled.staticRenderFns.length;
   res.staticRenderFns = new Array(l);
   for (var i = 0; i < l; i++) {
+    // 没太明白staticRender有啥用？？
     res.staticRenderFns[i] = makeFunction(compiled.staticRenderFns[i]);
   }
   {
@@ -7649,6 +7687,212 @@ function makeFunction (code) {
     return noop
   }
 }
+
+// res.render 样例，根据todo.html而来
+/**
+ * (function anonymous() {
+    with (this) {
+        return _h('section', {
+            staticClass: "todoapp"
+        }, [_h('header', {
+            staticClass: "header"
+        }, [_m(0), " ", _h('input', {
+            directives: [{
+                name: "model",
+                value: (newTodo),
+                expression: "newTodo"
+            }],
+            staticClass: "new-todo",
+            attrs: {
+                "autofocus": "",
+                "autocomplete": "off",
+                "placeholder": "What needs to be done?"
+            },
+            domProps: {
+                "value": _s(newTodo)
+            },
+            on: {
+                "keyup": function($event) {
+                    if ($event.keyCode !== 13)
+                        return;
+                    addTodo($event)
+                },
+                "input": function($event) {
+                    if ($event.target.composing)
+                        return;
+                    newTodo = $event.target.value
+                }
+            }
+        })]), " ", _h('section', {
+            directives: [{
+                name: "show",
+                value: (todos.length),
+                expression: "todos.length"
+            }],
+            staticClass: "main"
+        }, [_h('input', {
+            staticClass: "toggle-all",
+            attrs: {
+                "type": "checkbox"
+            },
+            domProps: {
+                "checked": Array.isArray(allDone) ? _i(allDone, null) > -1 : _q(allDone, true)
+            },
+            on: {
+                "change": function($event) {
+                    var $$a = allDone
+                      , $$el = $event.target
+                      , $$c = $$el.checked ? (true) : (false);
+                    if (Array.isArray($$a)) {
+                        var $$v = null
+                          , $$i = _i($$a, $$v);
+                        if ($$c) {
+                            $$i < 0 && (allDone = $$a.concat($$v))
+                        } else {
+                            $$i > -1 && (allDone = $$a.slice(0, $$i).concat($$a.slice($$i + 1)))
+                        }
+                    } else {
+                        allDone = $$c
+                    }
+                }
+            }
+        }), " ", _h('ul', {
+            staticClass: "todo-list"
+        }, [_l((filteredTodos), function(todo) {
+            return _h('li', {
+                key: todo.id,
+                staticClass: "todo",
+                class: {
+                    completed: todo.completed,
+                    editing: todo == editedTodo
+                }
+            }, [_h('div', {
+                staticClass: "view"
+            }, [_h('input', {
+                staticClass: "toggle",
+                attrs: {
+                    "type": "checkbox"
+                },
+                domProps: {
+                    "checked": Array.isArray(todo.completed) ? _i(todo.completed, null) > -1 : _q(todo.completed, true)
+                },
+                on: {
+                    "change": function($event) {
+                        var $$a = todo.completed
+                          , $$el = $event.target
+                          , $$c = $$el.checked ? (true) : (false);
+                        if (Array.isArray($$a)) {
+                            var $$v = null
+                              , $$i = _i($$a, $$v);
+                            if ($$c) {
+                                $$i < 0 && (todo.completed = $$a.concat($$v))
+                            } else {
+                                $$i > -1 && (todo.completed = $$a.slice(0, $$i).concat($$a.slice($$i + 1)))
+                            }
+                        } else {
+                            todo.completed = $$c
+                        }
+                    }
+                }
+            }), " ", _h('label', {
+                on: {
+                    "dblclick": function($event) {
+                        editTodo(todo)
+                    }
+                }
+            }, [_s(todo.title)]), " ", _h('button', {
+                staticClass: "destroy",
+                on: {
+                    "click": function($event) {
+                        removeTodo(todo)
+                    }
+                }
+            })]), " ", _h('input', {
+                directives: [{
+                    name: "model",
+                    value: (todo.title),
+                    expression: "todo.title"
+                }, {
+                    name: "todo-focus",
+                    value: (todo == editedTodo),
+                    expression: "todo == editedTodo"
+                }],
+                staticClass: "edit",
+                attrs: {
+                    "type": "text"
+                },
+                domProps: {
+                    "value": _s(todo.title)
+                },
+                on: {
+                    "blur": function($event) {
+                        doneEdit(todo)
+                    },
+                    "keyup": [function($event) {
+                        if ($event.keyCode !== 13)
+                            return;
+                        doneEdit(todo)
+                    }
+                    , function($event) {
+                        if ($event.keyCode !== 27)
+                            return;
+                        cancelEdit(todo)
+                    }
+                    ],
+                    "input": function($event) {
+                        if ($event.target.composing)
+                            return;
+                        todo.title = $event.target.value
+                    }
+                }
+            })])
+        })])]), " ", _h('footer', {
+            directives: [{
+                name: "show",
+                value: (todos.length),
+                expression: "todos.length"
+            }],
+            staticClass: "footer"
+        }, [_h('span', {
+            staticClass: "todo-count"
+        }, [_h('strong', [_s(remaining)]), " " + _s(_f("pluralize")(remaining)) + " left\n\t\t\t\t"]), " ", _h('ul', {
+            staticClass: "filters"
+        }, [_h('li', [_h('a', {
+            class: {
+                selected: visibility == 'all'
+            },
+            attrs: {
+                "href": "#/all"
+            }
+        }, ["All"])]), " ", _h('li', [_h('a', {
+            class: {
+                selected: visibility == 'active'
+            },
+            attrs: {
+                "href": "#/active"
+            }
+        }, ["Active"])]), " ", _h('li', [_h('a', {
+            class: {
+                selected: visibility == 'completed'
+            },
+            attrs: {
+                "href": "#/completed"
+            }
+        }, ["Completed"])])]), " ", _h('button', {
+            directives: [{
+                name: "show",
+                value: (todos.length > remaining),
+                expression: "todos.length > remaining"
+            }],
+            staticClass: "clear-completed",
+            on: {
+                "click": removeCompleted
+            }
+        }, ["\n\t\t\t\t\tClear completed\n\t\t\t\t"])])])
+    }
+}
+)
+ */
 
 /*  */
 
@@ -7706,12 +7950,14 @@ Vue$3.prototype.$mount = function (
       isFromDOM = true;
       template = getOuterHTML(el);
     }
+    // 经过上述查找之后，这里会template内容进行解析，生成对应的render函数
     if (template) {
       var ref = compileToFunctions(template, {
         warn: warn,
         isFromDOM: isFromDOM,
         shouldDecodeTags: shouldDecodeTags,
         shouldDecodeNewlines: shouldDecodeNewlines,
+        // delimiters可以改变插值选项，默认是{{}},可以改变成其他的
         delimiters: options.delimiters
       }, this);
       var render = ref.render;

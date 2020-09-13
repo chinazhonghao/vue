@@ -89,6 +89,7 @@ export function cached (fn: Function): Function {
  * Camelize a hyphen-delmited string.
  */
 const camelizeRE = /-(\w)/g
+// 捕获-后面的字符，转换成大写
 export const camelize = cached((str: string): string => {
   return str.replace(camelizeRE, (_, c) => c ? c.toUpperCase() : '')
 })

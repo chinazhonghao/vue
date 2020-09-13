@@ -19,6 +19,7 @@ import {
  * how to merge a parent option value and a child option
  * value into the final value.
  */
+// 可以覆盖这个配置来自定义合并策略
 const strats = config.optionMergeStrategies
 
 /**
@@ -55,8 +56,12 @@ function mergeData (to: Object, from: ?Object): Object {
     toVal = to[key]
     fromVal = from[key]
     if (!hasOwn(to, key)) {
+      // 如果key不是to上的原生属性，则用from上的属性值进行覆盖，并没有判断from上是否是原生属性
+      // 同时定义响应式
       set(to, key, fromVal)
     } else if (isObject(toVal) && isObject(fromVal)) {
+      // 如果两个都是对象，则进行深度合并
+      // 如果其中有一个不是对象，就无法进行合并了？？--》如果key是to上的原生属性，则以to上的原生属性为主
       mergeData(toVal, fromVal)
     }
   }
@@ -93,6 +98,7 @@ strats.data = function (
     // merged result of both functions... no need to
     // check if parentVal is a function here because
     // it has to be a function to pass previous merges.
+    // 当vm不存在时，定义的是一个函数，这个也和Component是一致的，Component中的data属性定义为function
     return function mergedDataFn () {
       return mergeData(
         childVal.call(this),
@@ -105,6 +111,7 @@ strats.data = function (
       const instanceData = typeof childVal === 'function'
         ? childVal.call(vm)
         : childVal
+        // 这个undefined是不是写错了，parentVal不是函数时就直接设置为undefined了？？
       const defaultData = typeof parentVal === 'function'
         ? parentVal.call(vm)
         : undefined
@@ -135,6 +142,12 @@ function mergeHook (
     : parentVal
 }
 
+// 生命周期函数的合并策略
+// beforeCreate, created
+// beforeMount, mounted
+// beforeUpdate, updated
+// beforeDestroy, detroyed
+// activited, deactivited
 config._lifecycleHooks.forEach(hook => {
   strats[hook] = mergeHook
 })
@@ -146,6 +159,7 @@ config._lifecycleHooks.forEach(hook => {
  * a three-way merge between constructor options, instance
  * options and parent options.
  */
+// extend简单的浅拷贝，以parent为原型，将child设置为当前对象，将childVal上的属性和值浅拷贝到当前对象上
 function mergeAssets (parentVal: ?Object, childVal: ?Object): Object {
   const res = Object.create(parentVal || null)
   return childVal
@@ -153,6 +167,12 @@ function mergeAssets (parentVal: ?Object, childVal: ?Object): Object {
     : res
 }
 
+/**
+ * 对这三种属性进行合并的方式
+ * 'component',
+ * 'directive'
+ * 'filter'
+ */
 config._assetTypes.forEach(function (type) {
   strats[type + 's'] = mergeAssets
 })
@@ -169,6 +189,8 @@ strats.watch = function (parentVal: ?Object, childVal: ?Object): ?Object {
   if (!parentVal) return childVal
   const ret = {}
   extend(ret, parentVal)
+  // 这里合并方法和mergeHook重复了
+  // 对同一个属性的监听，合并成一个数组
   for (const key in childVal) {
     let parent = ret[key]
     const child = childVal[key]
@@ -184,9 +206,11 @@ strats.watch = function (parentVal: ?Object, childVal: ?Object): ?Object {
 
 /**
  * Other object hashes.
+ * props, methods, computed的合并策略是一样的，直接用child上的属性覆盖parent上对应属性
  */
 strats.props =
 strats.methods =
+// 计算属性的合并，进行覆盖了
 strats.computed = function (parentVal: ?Object, childVal: ?Object): ?Object {
   if (!childVal) return parentVal
   if (!parentVal) return childVal
@@ -199,6 +223,7 @@ strats.computed = function (parentVal: ?Object, childVal: ?Object): ?Object {
 /**
  * Default strategy.
  */
+// 默认的合并策略，child为空则用parent上的数据，否则用child上的数据
 const defaultStrat = function (parentVal: any, childVal: any): any {
   return childVal === undefined
     ? parentVal
@@ -227,7 +252,8 @@ function normalizeComponents (options: Object) {
       }
       def = components[key]
       if (isPlainObject(def)) {
-        // 确保def不是null或者数组，使用Vue.extend,
+        // 确保def不是null或者数组，使用Vue.extend,将组件定义定义成Vue子对象
+        // 这里对应的是一个构造函数，应该在实例化过程中会调用这个函数
         components[key] = Vue.extend(def)
       }
     }
@@ -237,6 +263,9 @@ function normalizeComponents (options: Object) {
 /**
  * Ensure all props option syntax are normalized into the
  * Object-based format.
+ */
+/**
+ * 转换props的属性名称，格式化属性值为{}形式
  */
 function normalizeProps (options: Object) {
   const props = options.props
@@ -259,6 +288,7 @@ function normalizeProps (options: Object) {
   } else if (isPlainObject(props)) {
     for (const key in props) {
       val = props[key]
+      // 将props的名称进行转换
       name = camelize(key)
       // props的类型
       res[name] = isPlainObject(val)
@@ -272,7 +302,7 @@ function normalizeProps (options: Object) {
 /**
  * Normalize raw function directives into object format.
  */
-// 定义指令
+// 格式化指令，使指令的值对应对象形式，对象中有hook函数
 function normalizeDirectives (options: Object) {
   const dirs = options.directives
   if (dirs) {
@@ -324,11 +354,13 @@ export function mergeOptions (
     mergeField(key)
   }
   for (key in child) {
+    // 如果parent上有这个key了，在上面的合并中就已经处理了
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
   function mergeField (key) {
+    // 对于每一中属性有不同的合并策略，这里获取对于当前key的合并策略
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }
@@ -350,6 +382,8 @@ export function resolveAsset (
   if (typeof id !== 'string') {
     return
   }
+  // components，directives，filters
+  // 注意上述这三种属性的合并方式，这里查找会从原型链上查找
   const assets = options[type]
   const res = assets[id] ||
     // camelCase ID

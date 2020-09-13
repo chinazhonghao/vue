@@ -11,7 +11,7 @@ export default class VNode {
   context: Component | void; // rendered in this component's scope
   key: string | number | void;
   componentOptions: VNodeComponentOptions | void;
-  // 这里不可以有多个字组件吗？？
+  // 这里不可以有多个字组件吗？？上面有children属性了，这里还要child有什么用呢？？
   child: Component | void; // component instance
   parent: VNode | void; // compoennt placeholder node
   raw: boolean; // contains raw HTML? (server only)
@@ -73,6 +73,7 @@ export function cloneVNode (vnode: VNode): VNode {
     vnode.componentOptions
   )
   cloned.isStatic = vnode.isStatic
+  // 这里key设置成一样不会有更新上的问题吗？？
   cloned.key = vnode.key
   cloned.isCloned = true
   return cloned

@@ -17,7 +17,9 @@ export function initExtend (Vue: GlobalAPI) {
    */
   Vue.extend = function (extendOptions: Object): Function {
     extendOptions = extendOptions || {}
+    // 调用方式Vue.extend(option), this为Vue对象， option为一个组件对象
     const Super = this
+    // cid为零表示Vue本身
     const isFirstExtend = Super.cid === 0
     if (isFirstExtend && extendOptions._Ctor) {
       return extendOptions._Ctor
@@ -36,10 +38,12 @@ export function initExtend (Vue: GlobalAPI) {
     const Sub = function VueComponent (options) {
       this._init(options)
     }
+    // 以super的原型创建一个对象，形成原型链
     Sub.prototype = Object.create(Super.prototype)
-    // 原型上的constructor指向构造函数
+    // 原型上的constructor指向构造函数本身
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
+    // 这样合并，子组件应该可以访问父元素的属性，不过super是Vue而不是Vue实例，option是构造函数上的属性，而不是对象上属性
     Sub.options = mergeOptions(
       Super.options,
       extendOptions

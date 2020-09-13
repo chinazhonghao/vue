@@ -21,6 +21,7 @@ export default {
       } else {
         this.cache[key] = vnode
       }
+      // 在data上添加keepAlive标志属性
       vnode.data.keepAlive = true
     }
     return vnode

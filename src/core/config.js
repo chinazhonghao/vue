@@ -2,6 +2,7 @@
 
 import { no, noop } from 'shared/util'
 
+// Vue使用到的全局配置
 export type Config = {
   // user
   optionMergeStrategies: { [key: string]: Function };
@@ -107,7 +108,7 @@ const config: Config = {
   _maxUpdateCount: 100,
 
   /**
-   * Server rendering?
+   * Server rendering? SSR
    */
   _isServer: process.env.VUE_ENV === 'server'
 }

@@ -31,6 +31,8 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   /**
    * component，directive，filter
    */
+  // 保存components, directives, filters
+  // Vue.options["components"] = {}...
   config._assetTypes.forEach(type => {
     Vue.options[type + 's'] = Object.create(null)
   })
@@ -41,7 +43,8 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   // 添加use函数，再添加插件时会使用到
   initUse(Vue)
   // 添加mixin函数，用来合并mixin选项，可以直接使用mixin函数进行混合
-  // 并不能在Vue实例上进行调用，这个用处在哪里呢？？用来在Vue本身上添加属性
+  // 并不能在Vue实例上进行调用，这个用处在哪里呢--用来在Vue本身上添加属性
+  // 和组件中的mixin不一样
   initMixin(Vue)
   // 根据this创建一个子对象
   initExtend(Vue)

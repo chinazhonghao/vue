@@ -70,7 +70,7 @@ export function createPatchFunction (backend) {
     }
   }
 
-  // 清空elm
+  // 根据DOM定义一个VNode
   function emptyNodeAt (elm) {
     return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
   }
@@ -101,8 +101,10 @@ export function createPatchFunction (backend) {
       // it should've created a child instance and mounted it. the child
       // component also has set the placeholder vnode's elm.
       // in that case we can just return the element and be done.
+      // 父组件和子组件初始化顺序问题？？？
       if (isDef(i = vnode.child)) {
         initComponent(vnode, insertedVnodeQueue)
+        // 返回的是一个Node
         return vnode.elm
       }
     }
@@ -161,6 +163,7 @@ export function createPatchFunction (backend) {
       cbs.create[i](emptyNode, vnode)
     }
     i = vnode.data.hook // Reuse variable
+    // 这里是用户自定义的hook函数，通过option传入Vue构造函数
     if (isDef(i)) {
       if (i.create) i.create(emptyNode, vnode)
       if (i.insert) insertedVnodeQueue.push(vnode)
@@ -171,6 +174,7 @@ export function createPatchFunction (backend) {
     if (vnode.data.pendingInsert) {
       insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert)
     }
+    // 获取child的挂载点，这里为什么要重新设置父元素的Node呢？？
     vnode.elm = vnode.child.$el
     if (isPatchable(vnode)) {
       invokeCreateHooks(vnode, insertedVnodeQueue)
@@ -207,11 +211,13 @@ export function createPatchFunction (backend) {
 
   function invokeDestroyHook (vnode) {
     let i, j
+    // 看来这个data属性很重要啊，需要了解内部的数据结构
     const data = vnode.data
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode)
       for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode)
     }
+    // 这个child与children有什么关系呢？？
     if (isDef(i = vnode.child) && !data.keepAlive) {
       invokeDestroyHook(i._vnode)
     }
@@ -264,6 +270,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // parentElm表示不变的根节点
   function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
     let oldStartIdx = 0
     let newStartIdx = 0
@@ -278,6 +285,7 @@ export function createPatchFunction (backend) {
     // removeOnly is a special flag used only by <transition-group>
     // to ensure removed elements stay in correct relative positions
     // during leaving transitions
+    // 对于transition-group只能删除操作，不能移动DOM节点（循环移动）
     const canMove = !removeOnly
 
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
@@ -305,8 +313,10 @@ export function createPatchFunction (backend) {
         newStartVnode = newCh[++newStartIdx]
       } else {
         if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+        // 通过key属性判断新节点在旧节点中的位置
         idxInOld = isDef(newStartVnode.key) ? oldKeyToIdx[newStartVnode.key] : null
         if (isUndef(idxInOld)) { // New element
+          // 新节点，根据VNode创建新Node
           nodeOps.insertBefore(parentElm, createElm(newStartVnode, insertedVnodeQueue), oldStartVnode.elm)
           newStartVnode = newCh[++newStartIdx]
         } else {
@@ -324,6 +334,7 @@ export function createPatchFunction (backend) {
             newStartVnode = newCh[++newStartIdx]
           } else {
             patchVnode(elmToMove, newStartVnode, insertedVnodeQueue)
+            // 解除引用
             oldCh[idxInOld] = undefined
             canMove && nodeOps.insertBefore(parentElm, newStartVnode.elm, oldStartVnode.elm)
             newStartVnode = newCh[++newStartIdx]
@@ -331,8 +342,10 @@ export function createPatchFunction (backend) {
         }
       }
     }
+    // 对剩余元素的处理
     if (oldStartIdx > oldEndIdx) {
       before = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
+      // 找到最后一个元素，然后将所有元素添加到其前面；之所以这样是因为最后一个元素有可能以及patch好了，中间有部分元素未能patch
       addVnodes(parentElm, before, newCh, newStartIdx, newEndIdx, insertedVnodeQueue)
     } else if (newStartIdx > newEndIdx) {
       removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
@@ -356,6 +369,7 @@ export function createPatchFunction (backend) {
     }
     let i, hook
     const hasData = isDef(i = vnode.data)
+    // 这个钩子函数怎么没有暴露出来呢？？
     if (hasData && isDef(hook = i.hook) && isDef(i = hook.prepatch)) {
       i(oldVnode, vnode)
     }
@@ -459,6 +473,7 @@ export function createPatchFunction (backend) {
         vnode.tag === nodeOps.tagName(node).toLowerCase()
       )
     } else {
+      // 文本节点
       return _toString(vnode.text) === node.data
     }
   }
@@ -529,6 +544,6 @@ export function createPatchFunction (backend) {
     }
 
     invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
-    return vnode.elm
+    return vnode.aoelm
   }
 }
