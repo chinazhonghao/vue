@@ -15,6 +15,7 @@ export function initExtend (Vue: GlobalAPI) {
   /**
    * Class inheritance
    */
+  // 为什么要创建子对象呢？？直接使用Vue不行吗
   Vue.extend = function (extendOptions: Object): Function {
     extendOptions = extendOptions || {}
     // 调用方式Vue.extend(option), this为Vue对象， option为一个组件对象
@@ -34,7 +35,7 @@ export function initExtend (Vue: GlobalAPI) {
         name = null
       }
     }
-    // 子组件也是一个Vue实例，这里定义Sub函数来构造子组件
+    // 子组件也是一个Vue实例，这里定义Sub函数来构造子组件， 通过new Sub(options)来调用
     const Sub = function VueComponent (options) {
       this._init(options)
     }

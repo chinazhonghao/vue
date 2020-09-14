@@ -9,6 +9,7 @@ import { initAssetRegisters } from './assets'
 import { set, del } from '../observer/index'
 import builtInComponents from '../components/index'
 
+// 给Vue上添加全局的函数
 export function initGlobalAPI (Vue: GlobalAPI) {
   // config
   const configDef = {}
@@ -46,7 +47,8 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   // 并不能在Vue实例上进行调用，这个用处在哪里呢--用来在Vue本身上添加属性
   // 和组件中的mixin不一样
   initMixin(Vue)
-  // 根据this创建一个子对象
+  // 在Vue上添加一个extend方法，用来创建一个子类
   initExtend(Vue)
+  // 定义Vue.component(), Vue.directive(), Vue.filter()函数
   initAssetRegisters(Vue)
 }
