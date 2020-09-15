@@ -2,6 +2,7 @@
 
 import config from '../config'
 import Dep, { pushTarget, popTarget } from './dep'
+// queueWatcher watcher的一种执行机制
 import { queueWatcher } from './scheduler'
 import {
   warn,
@@ -55,6 +56,7 @@ export default class Watcher {
     this.expression = expOrFn.toString()
     this.cb = cb
     this.id = ++uid // uid for batching
+    // 初始化为true，当前watcher是否被移除
     this.active = true
     this.dirty = this.lazy // for lazy watchers
     this.deps = []
@@ -66,6 +68,14 @@ export default class Watcher {
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // 根据点来拆分，obj.a.b 这种形式
+      /**
+       * watch: {
+       *    'obj.a': function cb(){
+       *    }
+       * }
+       * parsePath返回一个函数，改函数可以根据vm找到改属性值，会逐层触发依赖收集
+       */
       this.getter = parsePath(expOrFn)
       if (!this.getter) {
         this.getter = function () {}
@@ -115,6 +125,7 @@ export default class Watcher {
     if (!this.newDepIds.has(id)) {
       this.newDepIds.add(id)
       this.newDeps.push(dep)
+      // 这里depIds包含了全部的dep,通过这个判断就足够了
       if (!this.depIds.has(id)) {
         dep.addSub(this)
       }
@@ -124,7 +135,8 @@ export default class Watcher {
   /**
    * Clean up for dependency collection.
    */
-  // 为什么要进行清除呢？？
+  // !!一个响应式属性变化会触发所有的Watcher进行响应，如果有某些Watcher没有响应，意味着这些Watcher不起作用了，就可以被删除了
+  // 典型例子：v-if
   cleanupDeps () {
     let i = this.deps.length
     while (i--) {
@@ -169,6 +181,7 @@ export default class Watcher {
    * Scheduler job interface.
    * Will be called by the scheduler.
    */
+  // 最终都是通过调用watcher.run方法，进行回调
   run () {
     if (this.active) {
       // 再次触发依赖收集？？，由于有dep所以不会重复收集依赖
@@ -256,6 +269,7 @@ export default class Watcher {
  * is collected as a "deep" dependency.
  */
 // 通过Set避免重复调用函数时的重复触发收集
+// 作用：遍历对象或数组，触发每个属性的getter函数，进行依赖收集
 const seenObjects = new Set()
 function traverse (val: any, seen?: Set) {
   let i, keys

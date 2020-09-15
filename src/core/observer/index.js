@@ -171,6 +171,16 @@ export function defineReactive (
   const setter = property && property.set
 
   // 当属性值时对象时，将该属性值包装成observe对象
+  /**
+   * data: {
+   *  obj: {
+   *    a: xx,
+   *    b: xx
+   *  }
+   * }
+   * key: obj,
+   * val: {...}
+   */
   let childOb = observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -185,6 +195,8 @@ export function defineReactive (
         dep.depend()
         // 这个好像并没有啥用？？
         if (childOb) {
+          // 如果子元素发生变化，也会通知watcher进行更新
+          // !! 在改变这个对象本身，比如说通过this.$set新增加一个key，或者通过del删除一个key的时候，会通过这个对象进行更新的派发，触发watcher的更新
           childOb.dep.depend()
         }
         if (Array.isArray(value)) {
@@ -214,7 +226,7 @@ export function defineReactive (
       }
       // 每一次都重新观察新值的子属性， 为什么没有childOb.dep.notify()
       childOb = observe(newVal)
-      // 依赖通知
+      // 依赖通知，只会触发直接依赖
       dep.notify()
     }
   })
@@ -225,7 +237,7 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
-// 这里的set和this.$set作用是一样的吗？？
+// 这里的set和this.$set作用是一样的吗？？在一个响应式对象上定义一个响应式属性
 export function set (obj: Array<any> | Object, key: any, val: any) {
   if (Array.isArray(obj)) {
     // 删除一个元素，同时在该位置上添加一个元素val
@@ -254,6 +266,7 @@ export function set (obj: Array<any> | Object, key: any, val: any) {
     return
   }
   defineReactive(ob.value, key, val)
+  // 观察这个对象或者数组的进行更新
   ob.dep.notify()
   return val
 }

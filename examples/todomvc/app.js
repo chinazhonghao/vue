@@ -70,7 +70,10 @@ var app = new Vue({
     },
     obj: function(newValue){
       console.log(newValue);
-    }
+    },
+    /*'obj.a': function(newValue){
+      console.log(newValue);
+    }*/
   },
 
   // computed properties
@@ -105,6 +108,12 @@ var app = new Vue({
   methods: {
     change(){
       this.obj.a = Math.random();
+      if(Object.prototype.hasOwnProperty.call(this.obj, 'c')){
+        delete this.obj.c;
+      }
+      else {
+        this.$set(this.obj, 'c', 0);
+      }
     },
     addTodo: function () {
       var value = this.newTodo && this.newTodo.trim()

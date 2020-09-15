@@ -41,6 +41,7 @@ export const arrayMethods = Object.create(arrayProto)
     // 封装的新的数组方法，首先调用原生的数组方法
     const result = original.apply(this, args)
     // 每一个对象都会包装成Observer对象，对其属性使用Object.defineProperty定义getter和setter函数
+    // 可以手动派发更新，也许是这个对象存在的意义把
     const ob = this.__ob__
     // 为什么这里要对参数进行选择和观察呢？？--重新观察新插入数据的部分，这样不用遍历全部的数组部分
     let inserted
@@ -53,9 +54,11 @@ export const arrayMethods = Object.create(arrayProto)
         break
       case 'splice':
         // 从索引2开始拷贝--splice的参数：startIndex, deleteCount, newValue... 所以从索引2开始复制
+        // 从索引2开始的部分代表插入部分
         inserted = args.slice(2)
         break
     }
+    // 把新增加部分也编程可观察部分
     if (inserted) ob.observeArray(inserted)
     // notify change
     ob.dep.notify()

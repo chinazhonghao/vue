@@ -23,6 +23,7 @@ export default class Dep {
 
   // 为什么这里不直接把Dep.target加进来呢？反而是通过这种调用的方式
   // 是因为加入的时候有重复问题？？需要对加入的Dep进行过滤一下（使用Dep.id属性）
+  // addSub和removeSub是实例上的方法
   addSub (sub: Watcher) {
     this.subs.push(sub)
   }
@@ -51,6 +52,7 @@ export default class Dep {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+// 其实将这个target设置在Dep上有点绕圈子了，直接定一个全局变量会不会更好点
 Dep.target = null
 const targetStack = []
 

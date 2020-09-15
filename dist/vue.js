@@ -567,6 +567,7 @@ var Dep = function Dep () {
 
 // 为什么这里不直接把Dep.target加进来呢？反而是通过这种调用的方式
 // 是因为加入的时候有重复问题？？需要对加入的Dep进行过滤一下（使用Dep.id属性）
+// addSub和removeSub是实例上的方法
 Dep.prototype.addSub = function addSub (sub) {
   this.subs.push(sub);
 };
@@ -594,6 +595,7 @@ Dep.prototype.notify = function notify () {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+// 其实将这个target设置在Dep上有点绕圈子了，直接定一个全局变量会不会更好点
 Dep.target = null;
 var targetStack = [];
 
@@ -644,11 +646,12 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
-  // watcher的id是有一定规律的
+  // watcher的id是有一定规律的， parent->child, user watcher -> render watcher
   queue.sort(function (a, b) { return a.id - b.id; });
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+  // 通过queueWatcher添加更多watcher
   for (index = 0; index < queue.length; index++) {
     var watcher = queue[index];
     var id = watcher.id;
@@ -689,22 +692,26 @@ function flushSchedulerQueue () {
  */
 function queueWatcher (watcher) {
   var id = watcher.id;
+  // 通过watcher的ID避免在queue中添加重复的watcher
   if (has$1[id] == null) {
     has$1[id] = true;
+    // 通过判断flushing标识判断queue的当前状态
     if (!flushing) {
       queue.push(watcher);
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
-      // 为什么要根据id来进行查找呢？？
+      // 找到第一个比待添加watcher小的watcher，插入排序的方式
       var i = queue.length - 1;
       while (i >= 0 && queue[i].id > watcher.id) {
         i--;
       }
       // start, deletedCount(0：不删除元素)，watcher要添加进数组的元素从start位置开始
+      // 插入的位置在index之后
       queue.splice(Math.max(i, index) + 1, 0, watcher);
     }
     // queue the flush
+    // 添加watcher之后，自动会在nextTick中执行
     if (!waiting) {
       waiting = true;
       nextTick(flushSchedulerQueue);
@@ -714,6 +721,7 @@ function queueWatcher (watcher) {
 
 /*  */
 
+// queueWatcher watcher的一种执行机制
 var uid$1 = 0;
 
 /**
@@ -740,6 +748,7 @@ var Watcher = function Watcher (
   this.expression = expOrFn.toString();
   this.cb = cb;
   this.id = ++uid$1; // uid for batching
+  // 初始化为true，当前watcher是否被移除
   this.active = true;
   this.dirty = this.lazy; // for lazy watchers
   this.deps = [];
@@ -751,6 +760,14 @@ var Watcher = function Watcher (
   if (typeof expOrFn === 'function') {
     this.getter = expOrFn;
   } else {
+    // 根据点来拆分，obj.a.b 这种形式
+    /**
+     * watch: {
+     *  'obj.a': function cb(){
+     *  }
+     * }
+     * parsePath返回一个函数，改函数可以根据vm找到改属性值，会逐层触发依赖收集
+     */
     this.getter = parsePath(expOrFn);
     if (!this.getter) {
       this.getter = function () {};
@@ -800,6 +817,7 @@ Watcher.prototype.addDep = function addDep (dep) {
   if (!this.newDepIds.has(id)) {
     this.newDepIds.add(id);
     this.newDeps.push(dep);
+    // 这里depIds包含了全部的dep,通过这个判断就足够了
     if (!this.depIds.has(id)) {
       dep.addSub(this);
     }
@@ -809,7 +827,8 @@ Watcher.prototype.addDep = function addDep (dep) {
 /**
  * Clean up for dependency collection.
  */
-// 为什么要进行清除呢？？
+// !!一个响应式属性变化会触发所有的Watcher进行响应，如果有某些Watcher没有响应，意味着这些Watcher不起作用了，就可以被删除了
+// 典型例子：v-if
 Watcher.prototype.cleanupDeps = function cleanupDeps () {
     var this$1 = this;
 
@@ -832,7 +851,7 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
   this.newDepIds.clear();
   tmp = this.deps;
   this.deps = this.newDeps;
-    this.newDeps = tmp;
+  this.newDeps = tmp;
   this.newDeps.length = 0;
 };
 
@@ -841,7 +860,7 @@ Watcher.prototype.cleanupDeps = function cleanupDeps () {
  * Will be called when a dependency changes.
  */
 Watcher.prototype.update = function update () {
-  /* istanbul ignore else */
+    /* istanbul ignore else */
   // 计算属性的这个属性为true，通过设置dirty属性控制在获取计算属性时主动触发get函数
   if (this.lazy) {
     this.dirty = true;
@@ -856,6 +875,7 @@ Watcher.prototype.update = function update () {
  * Scheduler job interface.
  * Will be called by the scheduler.
  */
+// 最终都是通过调用watcher.run方法，进行回调
 Watcher.prototype.run = function run () {
   if (this.active) {
     // 再次触发依赖收集？？，由于有dep所以不会重复收集依赖
@@ -946,6 +966,7 @@ Watcher.prototype.teardown = function teardown () {
  * is collected as a "deep" dependency.
  */
 // 通过Set避免重复调用函数时的重复触发收集
+// 作用：遍历对象或数组，触发每个属性的getter函数，进行依赖收集
 var seenObjects = new _Set();
 function traverse (val, seen) {
   var i, keys;
@@ -1015,6 +1036,7 @@ var arrayMethods = Object.create(arrayProto);[
     // 封装的新的数组方法，首先调用原生的数组方法
     var result = original.apply(this, args);
     // 每一个对象都会包装成Observer对象，对其属性使用Object.defineProperty定义getter和setter函数
+    // 可以手动派发更新，也许是这个对象存在的意义把
     var ob = this.__ob__;
     // 为什么这里要对参数进行选择和观察呢？？--重新观察新插入数据的部分，这样不用遍历全部的数组部分
     var inserted;
@@ -1027,9 +1049,11 @@ var arrayMethods = Object.create(arrayProto);[
         break
       case 'splice':
         // 从索引2开始拷贝--splice的参数：startIndex, deleteCount, newValue... 所以从索引2开始复制
+        // 从索引2开始的部分代表插入部分
         inserted = args.slice(2);
         break
     }
+    // 把新增加部分也编程可观察部分
     if (inserted) { ob.observeArray(inserted); }
     // notify change
     ob.dep.notify();
@@ -1189,6 +1213,16 @@ function defineReactive$$1 (
   var setter = property && property.set;
 
   // 当属性值时对象时，将该属性值包装成observe对象
+  /**
+   * data: {
+   *  obj: {
+   *    a: xx,
+   *    b: xx
+   *  }
+   * }
+   * key: obj,
+   * val: {...}
+   */
   var childOb = observe(val);
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -1203,6 +1237,7 @@ function defineReactive$$1 (
         dep.depend();
         // 这个好像并没有啥用？？
         if (childOb) {
+          // 如果子元素发生变化，也会通知watcher进行更新
           childOb.dep.depend();
         }
         if (Array.isArray(value)) {
@@ -1232,7 +1267,7 @@ function defineReactive$$1 (
       }
       // 每一次都重新观察新值的子属性， 为什么没有childOb.dep.notify()
       childOb = observe(newVal);
-      // 依赖通知
+      // 依赖通知，只会触发直接依赖
       dep.notify();
     }
   });
@@ -1243,7 +1278,7 @@ function defineReactive$$1 (
  * triggers change notification if the property doesn't
  * already exist.
  */
-// 这里的set和this.$set作用是一样的吗？？
+// 这里的set和this.$set作用是一样的吗？？在一个响应式对象上定义一个响应式属性
 function set (obj, key, val) {
   if (Array.isArray(obj)) {
     // 删除一个元素，同时在该位置上添加一个元素val
@@ -1272,6 +1307,7 @@ function set (obj, key, val) {
     return
   }
   defineReactive$$1(ob.value, key, val);
+  // 观察这个对象或者数组的进行更新
   ob.dep.notify();
   return val
 }
