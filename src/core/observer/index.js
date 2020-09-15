@@ -156,7 +156,8 @@ export function defineReactive (
   val: any,
   customSetter?: Function
 ) {
-  // 每个对象已经有一个dep了，这里为什么还会有dep呢？？
+  // 每个对象已经有一个dep了，这里为什么还会有dep呢？？--这里的dep是针对属性值是基本类型的情况
+  // 属性值为对象时，childOb上会定义Dep
   const dep = new Dep()
 
   // Object.defineProperty中要用到的属性描述符
@@ -182,7 +183,7 @@ export function defineReactive (
         // 依赖收集 dependency
         // 父收集，子元素也进行收集？？对象有dep,属性也有自己的dep依赖收集
         dep.depend()
-        // 如果该属性值是一个对象，则属性值中有变化时也会触发watcher的相应
+        // 这个好像并没有啥用？？
         if (childOb) {
           childOb.dep.depend()
         }
@@ -211,7 +212,7 @@ export function defineReactive (
       } else {
         val = newVal
       }
-      // 每一次都重新观察新值的子属性
+      // 每一次都重新观察新值的子属性， 为什么没有childOb.dep.notify()
       childOb = observe(newVal)
       // 依赖通知
       dep.notify()

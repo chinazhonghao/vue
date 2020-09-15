@@ -48,7 +48,11 @@ var app = new Vue({
     newTodo: '',
     editedTodo: null,
     visibility: 'all',
-    //_test: "Hello, world"
+    //_test: "Hello, world",
+    obj: {
+      a: "hello",
+      b: "hi"
+    }
   },
   mixins: [mixins],
 
@@ -63,6 +67,9 @@ var app = new Vue({
         todoStorage.save(todos)
       },
       deep: true
+    },
+    obj: function(newValue){
+      console.log(newValue);
     }
   },
 
@@ -96,6 +103,9 @@ var app = new Vue({
   // methods that implement data logic.
   // note there's no DOM manipulation here at all.
   methods: {
+    change(){
+      this.obj.a = Math.random();
+    },
     addTodo: function () {
       var value = this.newTodo && this.newTodo.trim()
       if (!value) {

@@ -100,6 +100,7 @@ function cached (fn) {
  * Camelize a hyphen-delmited string.
  */
 var camelizeRE = /-(\w)/g;
+// 捕获-后面的字符，转换成大写
 var camelize = cached(function (str) {
   return str.replace(camelizeRE, function (_, c) { return c ? c.toUpperCase() : ''; })
 });
@@ -238,6 +239,9 @@ function looseIndexOf (arr, val) {
 
 /*  */
 
+// Vue使用到的全局配置
+
+
 var config = {
   /**
    * Option merge strategies (used in core/util/options)
@@ -323,7 +327,7 @@ var config = {
   _maxUpdateCount: 100,
 
   /**
-   * Server rendering?
+   * Server rendering? SSR
    */
   _isServer: "client" === 'server'
 };
@@ -1170,7 +1174,8 @@ function defineReactive$$1 (
   val,
   customSetter
 ) {
-  // 每个对象已经有一个dep了，这里为什么还会有dep呢？？
+  // 每个对象已经有一个dep了，这里为什么还会有dep呢？？--这里的dep是针对属性值是基本类型的情况
+  // 属性值为对象时，childOb上会定义Dep
   var dep = new Dep();
 
   // Object.defineProperty中要用到的属性描述符
@@ -1196,7 +1201,7 @@ function defineReactive$$1 (
         // 依赖收集 dependency
         // 父收集，子元素也进行收集？？对象有dep,属性也有自己的dep依赖收集
         dep.depend();
-        // 如果该属性值是一个对象，则属性值中有变化时也会触发watcher的相应
+        // 这个好像并没有啥用？？
         if (childOb) {
           childOb.dep.depend();
         }
@@ -1225,7 +1230,7 @@ function defineReactive$$1 (
       } else {
         val = newVal;
       }
-      // 每一次都重新观察新值的子属性
+      // 每一次都重新观察新值的子属性， 为什么没有childOb.dep.notify()
       childOb = observe(newVal);
       // 依赖通知
       dep.notify();
@@ -1296,6 +1301,7 @@ function del (obj, key) {
 /*  */
 
 function initState (vm) {
+  // 当前vm上的watchers实例
   vm._watchers = [];
   initProps(vm);
   initData(vm);
@@ -1386,6 +1392,7 @@ function initData (vm) {
    *    }
    * }
    * 这样就可以监听到data上todo属性的变化了，使用Object.defineProperty(data, "todo", {...})
+   * 并没有在data上定义get,set函数
    */
   observe(data);
   data.__ob__ && data.__ob__.vmCount++;
@@ -1803,11 +1810,14 @@ function initLifecycle (vm) {
   }
 
   vm.$parent = parent;
+  // root是其本身
   vm.$root = parent ? parent.$root : vm;
 
+  // 初始化children和refs池子
   vm.$children = [];
   vm.$refs = {};
 
+  // 初始化一些标记
   vm._watcher = null;
   vm._inactive = false;
   vm._isMounted = false;
@@ -2597,6 +2607,7 @@ function resolveSlots (
 /*  */
 
 function initEvents (vm) {
+  // 初始化_events池
   vm._events = Object.create(null);
   // init parent attached events
   var listeners = vm.$options._parentListeners;
@@ -2691,7 +2702,7 @@ function initMixin (Vue) {
     // 通过new进行调用，this指向新创建的Vue对象
     var vm = this;
     // 在实例上定义一些属性
-    // a uid
+    // a uid; Vue本身上有cid属性了
     vm._uid = uid++;
     // a flag to avoid this being observed
     // 通过这个属性来判断是否是vue实例，为什么不通过proto进行判断呢？？性能考虑吗
@@ -2731,6 +2742,7 @@ function initMixin (Vue) {
   };
 
   function initInternalComponent (vm, options) {
+    // 以原型的方式创建components, directives, filters
     var opts = vm.$options = Object.create(resolveConstructorOptions(vm));
     // doing this because it's faster than dynamic enumeration.
     opts.parent = options.parent;
@@ -2745,20 +2757,24 @@ function initMixin (Vue) {
     }
   }
 
-  // 获取parent元素上的选项参数
+  // 以原型链的方式合并components, directives, filters
   function resolveConstructorOptions (vm) {
+    // constructor为Vue
     var Ctor = vm.constructor;
+    // components, directives, filters
     var options = Ctor.options;
     if (Ctor.super) {
       var superOptions = Ctor.super.options;
-      // 缓存其更上一层的选项，当缓存的对象和parent上的对象一致则不需要再次计算
+      // 缓存，避免重新mergerOptions
       var cachedSuperOptions = Ctor.superOptions;
       if (superOptions !== cachedSuperOptions) {
         // super option changed
         // 再次缓存parent上的选项
         Ctor.superOptions = superOptions;
+        // vm.constructor.extendOptions || vm.constructor.super.options
         options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions);
         if (options.name) {
+          // 添加一个组件
           options.components[options.name] = Ctor;
         }
       }
@@ -2828,6 +2844,7 @@ var formatComponentName;
  * how to merge a parent option value and a child option
  * value into the final value.
  */
+// 可以覆盖这个配置来自定义合并策略
 var strats = config.optionMergeStrategies;
 
 /**
@@ -2864,8 +2881,12 @@ function mergeData (to, from) {
     toVal = to[key];
     fromVal = from[key];
     if (!hasOwn(to, key)) {
+      // 如果key不是to上的原生属性，则用from上的属性值进行覆盖，并没有判断from上是否是原生属性
+      // 同时定义响应式
       set(to, key, fromVal);
     } else if (isObject(toVal) && isObject(fromVal)) {
+      // 如果两个都是对象，则进行深度合并
+      // 如果其中有一个不是对象，就无法进行合并了？？--》如果key是to上的原生属性，则以to上的原生属性为主
       mergeData(toVal, fromVal);
     }
   }
@@ -2902,6 +2923,7 @@ strats.data = function (
     // merged result of both functions... no need to
     // check if parentVal is a function here because
     // it has to be a function to pass previous merges.
+    // 当vm不存在时，定义的是一个函数，这个也和Component是一致的，Component中的data属性定义为function
     return function mergedDataFn () {
       return mergeData(
         childVal.call(this),
@@ -2914,6 +2936,7 @@ strats.data = function (
       var instanceData = typeof childVal === 'function'
         ? childVal.call(vm)
         : childVal;
+        // 这个undefined是不是写错了，parentVal不是函数时就直接设置为undefined了？？
       var defaultData = typeof parentVal === 'function'
         ? parentVal.call(vm)
         : undefined;
@@ -2944,6 +2967,12 @@ function mergeHook (
     : parentVal
 }
 
+// 生命周期函数的合并策略
+// beforeCreate, created
+// beforeMount, mounted
+// beforeUpdate, updated
+// beforeDestroy, detroyed
+// activited, deactivited
 config._lifecycleHooks.forEach(function (hook) {
   strats[hook] = mergeHook;
 });
@@ -2955,6 +2984,7 @@ config._lifecycleHooks.forEach(function (hook) {
  * a three-way merge between constructor options, instance
  * options and parent options.
  */
+// extend简单的浅拷贝，以parent为原型，将child设置为当前对象，将childVal上的属性和值浅拷贝到当前对象上
 function mergeAssets (parentVal, childVal) {
   var res = Object.create(parentVal || null);
   return childVal
@@ -2962,6 +2992,12 @@ function mergeAssets (parentVal, childVal) {
     : res
 }
 
+/**
+ * 对这三种属性进行合并的方式
+ * 'component',
+ * 'directive'
+ * 'filter'
+ */
 config._assetTypes.forEach(function (type) {
   strats[type + 's'] = mergeAssets;
 });
@@ -2978,6 +3014,8 @@ strats.watch = function (parentVal, childVal) {
   if (!parentVal) { return childVal }
   var ret = {};
   extend(ret, parentVal);
+  // 这里合并方法和mergeHook重复了
+  // 对同一个属性的监听，合并成一个数组
   for (var key in childVal) {
     var parent = ret[key];
     var child = childVal[key];
@@ -2993,9 +3031,11 @@ strats.watch = function (parentVal, childVal) {
 
 /**
  * Other object hashes.
+ * props, methods, computed的合并策略是一样的，直接用child上的属性覆盖parent上对应属性
  */
 strats.props =
 strats.methods =
+// 计算属性的合并，进行覆盖了
 strats.computed = function (parentVal, childVal) {
   if (!childVal) { return parentVal }
   if (!parentVal) { return childVal }
@@ -3008,6 +3048,7 @@ strats.computed = function (parentVal, childVal) {
 /**
  * Default strategy.
  */
+// 默认的合并策略，child为空则用parent上的数据，否则用child上的数据
 var defaultStrat = function (parentVal, childVal) {
   return childVal === undefined
     ? parentVal
@@ -3036,7 +3077,8 @@ function normalizeComponents (options) {
       }
       def = components[key];
       if (isPlainObject(def)) {
-        // 确保def不是null或者数组，使用Vue.extend,
+        // 确保def不是null或者数组，使用Vue.extend,将组件定义定义成Vue子对象
+        // 这里对应的是一个构造函数，应该在实例化过程中会调用这个函数
         components[key] = Vue$3.extend(def);
       }
     }
@@ -3046,6 +3088,9 @@ function normalizeComponents (options) {
 /**
  * Ensure all props option syntax are normalized into the
  * Object-based format.
+ */
+/**
+ * 转换props的属性名称，格式化属性值为{}形式
  */
 function normalizeProps (options) {
   var props = options.props;
@@ -3068,6 +3113,7 @@ function normalizeProps (options) {
   } else if (isPlainObject(props)) {
     for (var key in props) {
       val = props[key];
+      // 将props的名称进行转换
       name = camelize(key);
       // props的类型
       res[name] = isPlainObject(val)
@@ -3081,7 +3127,7 @@ function normalizeProps (options) {
 /**
  * Normalize raw function directives into object format.
  */
-// 定义指令
+// 格式化指令，使指令的值对应对象形式，对象中有hook函数
 function normalizeDirectives (options) {
   var dirs = options.directives;
   if (dirs) {
@@ -3133,11 +3179,13 @@ function mergeOptions (
     mergeField(key);
   }
   for (key in child) {
+    // 如果parent上有这个key了，在上面的合并中就已经处理了
     if (!hasOwn(parent, key)) {
       mergeField(key);
     }
   }
   function mergeField (key) {
+    // 对于每一中属性有不同的合并策略，这里获取对于当前key的合并策略
     var strat = strats[key] || defaultStrat;
     options[key] = strat(parent[key], child[key], vm, key);
   }
@@ -3159,6 +3207,8 @@ function resolveAsset (
   if (typeof id !== 'string') {
     return
   }
+  // components，directives，filters
+  // 注意上述这三种属性的合并方式，这里查找会从原型链上查找
   var assets = options[type];
   var res = assets[id] ||
     // camelCase ID
@@ -3425,9 +3475,12 @@ function initExtend (Vue) {
   /**
    * Class inheritance
    */
+  // 为什么要创建子对象呢？？直接使用Vue不行吗
   Vue.extend = function (extendOptions) {
     extendOptions = extendOptions || {};
+    // 调用方式Vue.extend(option), this为Vue对象， option为一个组件对象
     var Super = this;
+    // cid为零表示Vue本身
     var isFirstExtend = Super.cid === 0;
     if (isFirstExtend && extendOptions._Ctor) {
       return extendOptions._Ctor
@@ -3442,14 +3495,16 @@ function initExtend (Vue) {
         name = null;
       }
     }
-    // 子组件也是一个Vue实例，这里定义Sub函数来构造子组件
+    // 子组件也是一个Vue实例，这里定义Sub函数来构造子组件， 通过new Sub(options)来调用
     var Sub = function VueComponent (options) {
       this._init(options);
     };
+    // 以super的原型创建一个对象，形成原型链
     Sub.prototype = Object.create(Super.prototype);
-    // 原型上的constructor指向构造函数
+    // 原型上的constructor指向构造函数本身
     Sub.prototype.constructor = Sub;
     Sub.cid = cid++;
+    // 这样合并，子组件应该可以访问父元素的属性，不过super是Vue而不是Vue实例，option是构造函数上的属性，而不是对象上属性
     Sub.options = mergeOptions(
       Super.options,
       extendOptions
@@ -3485,6 +3540,8 @@ function initAssetRegisters (Vue) {
   /**
    * Create asset registration methods.
    */
+  // components, directives, filters
+  // 给Vue上定义Vue.component(), Vue.directive(), Vue.filter()全局函数
   config._assetTypes.forEach(function (type) {
     Vue[type] = function (
       id,
@@ -3503,12 +3560,14 @@ function initAssetRegisters (Vue) {
           }
         }
         if (type === 'component' && isPlainObject(definition)) {
+          // 这时definition是定义component的选项
           definition.name = definition.name || id;
           definition = Vue.extend(definition);
         }
         if (type === 'directive' && typeof definition === 'function') {
           definition = { bind: definition, update: definition };
         }
+        // 把定义缓存起来
         this.options[type + 's'][id] = definition;
         return definition
       }
@@ -3536,6 +3595,7 @@ var KeepAlive = {
       } else {
         this.cache[key] = vnode;
       }
+      // 在data上添加keepAlive标志属性
       vnode.data.keepAlive = true;
     }
     return vnode
@@ -3558,6 +3618,7 @@ var builtInComponents = {
 
 /*  */
 
+// 给Vue上添加全局的函数
 function initGlobalAPI (Vue) {
   // config
   var configDef = {};
@@ -3580,6 +3641,8 @@ function initGlobalAPI (Vue) {
   /**
    * component，directive，filter
    */
+  // 保存components, directives, filters
+  // Vue.options["components"] = {}...
   config._assetTypes.forEach(function (type) {
     Vue.options[type + 's'] = Object.create(null);
   });
@@ -3590,10 +3653,12 @@ function initGlobalAPI (Vue) {
   // 添加use函数，再添加插件时会使用到
   initUse(Vue);
   // 添加mixin函数，用来合并mixin选项，可以直接使用mixin函数进行混合
-  // 并不能在Vue实例上进行调用，这个用处在哪里呢？？用来在Vue本身上添加属性
+  // 并不能在Vue实例上进行调用，这个用处在哪里呢--用来在Vue本身上添加属性
+  // 和组件中的mixin不一样
   initMixin$1(Vue);
-  // 根据this创建一个子对象
+  // 在Vue上添加一个extend方法，用来创建一个子类
   initExtend(Vue);
+  // 定义Vue.component(), Vue.directive(), Vue.filter()函数
   initAssetRegisters(Vue);
 }
 
@@ -4504,7 +4569,7 @@ function createPatchFunction (backend) {
     }
 
     invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch);
-    return vnode.elm
+    return vnode.aoelm
   }
 }
 
@@ -5808,6 +5873,7 @@ extend(Vue$3.options.components, platformComponents);
 Vue$3.prototype.__patch__ = config._isServer ? noop : patch$1;
 
 // wrap mount -- 可以被runtime-only的编译方式直接复用的；hydrating和服务端渲染有关
+// 在上一层进一步被封装
 Vue$3.prototype.$mount = function (
   el,
   hydrating

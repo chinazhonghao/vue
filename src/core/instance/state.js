@@ -22,6 +22,7 @@ import {
 } from '../util/index'
 
 export function initState (vm: Component) {
+  // 当前vm上的watchers实例
   vm._watchers = []
   initProps(vm)
   initData(vm)
@@ -113,6 +114,7 @@ function initData (vm: Component) {
    *    }
    * }
    * 这样就可以监听到data上todo属性的变化了，使用Object.defineProperty(data, "todo", {...})
+   * 并没有在data上定义get,set函数
    */
   observe(data)
   data.__ob__ && data.__ob__.vmCount++

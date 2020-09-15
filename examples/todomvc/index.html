@@ -17,6 +17,8 @@
 					v-model="newTodo"
 					@keyup.enter="addTodo">
 			</header>
+			<p>{{JSON.stringify(obj)}}</p>
+			<button @click="change">变化</button>
 			<section class="main" v-show="todos.length" v-cloak>
 				<input class="toggle-all" type="checkbox" v-model="allDone">
 				<ul class="todo-list">

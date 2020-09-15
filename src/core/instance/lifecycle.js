@@ -25,11 +25,14 @@ export function initLifecycle (vm: Component) {
   }
 
   vm.$parent = parent
+  // root是其本身
   vm.$root = parent ? parent.$root : vm
 
+  // 初始化children和refs池子
   vm.$children = []
   vm.$refs = {}
 
+  // 初始化一些标记
   vm._watcher = null
   vm._inactive = false
   vm._isMounted = false

@@ -4,6 +4,7 @@ import { bind, toArray } from '../util/index'
 import { updateListeners } from '../vdom/helpers'
 
 export function initEvents (vm: Component) {
+  // 初始化_events池
   vm._events = Object.create(null)
   // init parent attached events
   const listeners = vm.$options._parentListeners

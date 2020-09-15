@@ -19,7 +19,7 @@ export function initMixin (Vue: Class<Component>) {
     // 通过new进行调用，this指向新创建的Vue对象
     const vm: Component = this
     // 在实例上定义一些属性
-    // a uid
+    // a uid; Vue本身上有cid属性了
     vm._uid = uid++
     // a flag to avoid this being observed
     // 通过这个属性来判断是否是vue实例，为什么不通过proto进行判断呢？？性能考虑吗
@@ -61,6 +61,7 @@ export function initMixin (Vue: Class<Component>) {
   }
 
   function initInternalComponent (vm: Component, options: InternalComponentOptions) {
+    // 以原型的方式创建components, directives, filters
     const opts = vm.$options = Object.create(resolveConstructorOptions(vm))
     // doing this because it's faster than dynamic enumeration.
     opts.parent = options.parent
@@ -75,20 +76,24 @@ export function initMixin (Vue: Class<Component>) {
     }
   }
 
-  // 获取parent元素上的选项参数
+  // 以原型链的方式合并components, directives, filters
   function resolveConstructorOptions (vm: Component) {
+    // constructor为Vue
     const Ctor = vm.constructor
+    // components, directives, filters
     let options = Ctor.options
     if (Ctor.super) {
       const superOptions = Ctor.super.options
-      // 缓存其更上一层的选项，当缓存的对象和parent上的对象一致则不需要再次计算
+      // 缓存，避免重新mergerOptions
       const cachedSuperOptions = Ctor.superOptions
       if (superOptions !== cachedSuperOptions) {
         // super option changed
         // 再次缓存parent上的选项
         Ctor.superOptions = superOptions
+        // vm.constructor.extendOptions || vm.constructor.super.options
         options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions)
         if (options.name) {
+          // 添加一个组件
           options.components[options.name] = Ctor
         }
       }
