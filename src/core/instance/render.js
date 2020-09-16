@@ -30,7 +30,9 @@ export function renderMixin (Vue: Class<Component>) {
     nextTick(fn, this)
   }
 
+  // 将template转换成vnode
   Vue.prototype._render = function (): VNode {
+    console.log("render");
     const vm: Component = this
     // ES6解构赋值
     const {
@@ -57,6 +59,7 @@ export function renderMixin (Vue: Class<Component>) {
     let vnode
     try {
       // 调用参数中的render函数，设置render中的this指向和createElement函数--终于知道_renderProxy属性的作用了
+      // 将render变成vnode结构
       vnode = render.call(vm._renderProxy, vm.$createElement)
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {

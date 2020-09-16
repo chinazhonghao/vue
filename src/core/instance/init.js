@@ -42,6 +42,7 @@ export function initMixin (Vue: Class<Component>) {
     /* istanbul ignore else */
     // 这里只是对render方法进行代理
     if (process.env.NODE_ENV !== 'production') {
+      // 指定render函数的this为当前Vue实例，在开发模式下可以进行一定的报错提示
       initProxy(vm)
     } else {
       vm._renderProxy = vm

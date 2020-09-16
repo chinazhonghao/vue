@@ -49,6 +49,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const vm: Component = this
     vm.$el = el
     // options.render大部分情况下并没有定义，这是从哪里来呢？？--从每个平台定义的$mount函数而来
+    // 如果用户参数中没有传入render，则解析template来获取render，否则从用户参数中获取render
     if (!vm.$options.render) {
       vm.$options.render = emptyVNode
       // 传入的options中template或者render函数需要设置至少一个
@@ -70,6 +71,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
       }
     }
     callHook(vm, 'beforeMount')
+    // 整个render函数定义成一个watcher
     vm._watcher = new Watcher(vm, () => {
       vm._update(vm._render(), hydrating)
     }, noop)
