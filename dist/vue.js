@@ -239,6 +239,9 @@ function looseIndexOf (arr, val) {
 
 /*  */
 
+// Vue使用到的全局配置
+
+
 var config = {
   /**
    * Option merge strategies (used in core/util/options)
@@ -374,6 +377,7 @@ function parsePath (path) {
 /*  */
 /* globals MutationObserver */
 
+// can we use __proto__?
 var hasProto = '__proto__' in {};
 
 // Browser environment sniffing
@@ -588,6 +592,10 @@ Dep.prototype.notify = function notify () {
   }
 };
 
+// the current target watcher being evaluated.
+// this is globally unique because there could be only one
+// watcher being evaluated at any time.
+// 其实将这个target设置在Dep上有点绕圈子了，直接定一个全局变量会不会更好点
 Dep.target = null;
 var targetStack = [];
 
@@ -713,6 +721,7 @@ function queueWatcher (watcher) {
 
 /*  */
 
+// queueWatcher watcher的一种执行机制
 var uid$1 = 0;
 
 /**
@@ -951,6 +960,13 @@ Watcher.prototype.teardown = function teardown () {
   }
 };
 
+/**
+ * Recursively traverse an object to evoke all converted
+ * getters, so that every nested property inside the object
+ * is collected as a "deep" dependency.
+ */
+// 通过Set避免重复调用函数时的重复触发收集
+// 作用：遍历对象或数组，触发每个属性的getter函数，进行依赖收集
 var seenObjects = new _Set();
 function traverse (val, seen) {
   var i, keys;
@@ -1047,6 +1063,8 @@ var arrayMethods = Object.create(arrayProto);[
 
 /*  */
 
+// 从array中导入改造后的数组方法，用来监听数组的变化
+// 获取对象上本身具有的属性
 var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
 
 /**
@@ -1183,6 +1201,7 @@ function defineReactive$$1 (
   // 每个对象已经有一个dep了，这里为什么还会有dep呢？？--这里的dep是针对属性值是基本类型的情况
   // 属性值为对象时，childOb上会定义Dep
   var dep = new Dep();
+  dep.key = key;
 
   // Object.defineProperty中要用到的属性描述符
   var property = Object.getOwnPropertyDescriptor(obj, key);
@@ -2316,6 +2335,8 @@ function mergeHook$1 (a, b) {
 
 /*  */
 
+// wrapper function for providing a more flexible interface
+// without getting yelled at by flow
 function createElement (
   tag,
   data,
@@ -2806,6 +2827,12 @@ function initMixin (Vue) {
   }
 }
 
+/**
+ * 通过new运算符进行调用，new Vue()的形式，返回ele, 则ele.__proto__ === Vue.prototype
+ * instanceof运算符检测对象是否是某个构造函数的实例，即检测上述的等号是否存在
+ * @param {*} options 
+ */
+// 打包时层层传递，通过这里进行Vue的实际定义
 function Vue$3 (options) {
   if ("development" !== 'production' &&
     !(this instanceof Vue$3)) {
@@ -2856,6 +2883,12 @@ var formatComponentName;
 
 /*  */
 
+/**
+ * Option overwriting strategies are functions that handle
+ * how to merge a parent option value and a child option
+ * value into the final value.
+ */
+// 可以覆盖这个配置来自定义合并策略
 var strats = config.optionMergeStrategies;
 
 /**
@@ -3622,12 +3655,14 @@ var KeepAlive = {
   }
 };
 
+// export default导出规则，单独一个对象时，KeepAlive: KeepAlive
 var builtInComponents = {
   KeepAlive: KeepAlive
 };
 
 /*  */
 
+// 给Vue上添加全局的函数
 function initGlobalAPI (Vue) {
   // config
   var configDef = {};
@@ -3671,6 +3706,8 @@ function initGlobalAPI (Vue) {
   initAssetRegisters(Vue);
 }
 
+// 进一步导入Vue
+// 给Vue本身定义一些API
 initGlobalAPI(Vue$3);
 
 // 在Vue原型上定义$isServer属性，通过"client"来标记是否时服务器环境
@@ -3682,6 +3719,7 @@ Vue$3.version = '2.0.0';
 
 /*  */
 
+// attributes that should be using props for binding
 var mustUseProp = makeMap('value,selected,checked,muted');
 
 var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
@@ -3711,7 +3749,6 @@ var isAttr = makeMap(
   'target,title,type,usemap,value,width,wrap'
 );
 
-/* istanbul ignore next */
 
 
 var xlinkNS = 'http://www.w3.org/1999/xlink';
@@ -3802,6 +3839,7 @@ function stringifyClass (value) {
 
 /*  */
 
+// HTML标签的命名空间
 var namespaceMap = {
   svg: 'http://www.w3.org/2000/svg',
   math: 'http://www.w3.org/1998/Math/MathML'
@@ -3899,6 +3937,9 @@ function isUnknownElement (tag) {
 
 /*  */
 
+/**
+ * Query an element selector if it's not an element already.
+ */
 function query (el) {
   if (typeof el === 'string') {
     var selector = el;
@@ -3915,6 +3956,7 @@ function query (el) {
 
 /*  */
 
+// DOM相关操作
 function createElement$1 (tagName) {
   return document.createElement(tagName)
 }
@@ -3986,6 +4028,7 @@ var nodeOps = Object.freeze({
 
 /*  */
 
+// ref的生命周期更新函数
 var ref = {
   create: function create (_, vnode) {
     registerRef(vnode);
@@ -4576,6 +4619,7 @@ function createPatchFunction (backend) {
 
 /*  */
 
+// directives的生命周期函数
 var directives = {
   create: function bindDirectives (oldVnode, vnode) {
     var hasInsert = false;
@@ -4754,6 +4798,7 @@ var klass = {
 // skip type checking this file because we need to attach private properties
 // to elements
 
+// DOM上的事件存储在DOM本身上，这个与jQuery处理是相同的
 function updateDOMListeners (oldVnode, vnode) {
   if (!oldVnode.data.on && !vnode.data.on) {
     return
@@ -5338,6 +5383,11 @@ var platformModules = [
 
 /*  */
 
+// 含有ref和directives的生命周期更新函数
+// 含有attrs, class, props, events, style, transition生命周期函数
+// 这个modules的后缀命名不太恰当，无法反应实际意义
+// the directive module should be applied last, after all
+// built-in modules have been applied.
 var modules = platformModules.concat(baseModules);
 
 // 根据平台特性传入参数创建path函数
@@ -5476,6 +5526,7 @@ function trigger (el, type) {
 
 /*  */
 
+// recursively search for possible transition defined inside the component root
 function locateNode (vnode) {
   return vnode.child && (!vnode.data || !vnode.data.transition)
     ? locateNode(vnode.child._vnode)
@@ -5849,6 +5900,7 @@ var platformComponents = {
 /*  */
 
 // 在Vue进一步封装，方便进行调试等操作，之后的逻辑都是在这个对象上面做扩展
+// install platform specific utils
 Vue$3.config.isUnknownElement = isUnknownElement;
 Vue$3.config.isReservedTag = isReservedTag;
 Vue$3.config.getTagNamespace = getTagNamespace;
@@ -5894,6 +5946,7 @@ setTimeout(function () {
 
 /*  */
 
+// check whether current browser encodes a char inside attribute values
 function shouldDecode (content, encoded) {
   var div = document.createElement('div');
   div.innerHTML = "<div a=\"" + content + "\">";
@@ -5931,6 +5984,7 @@ function decodeHTML (html) {
  * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
  */
 
+// Regular Expressions for parsing tags and attributes
 var singleAttrIdentifier = /([^\s"'<>\/=]+)/;
 var singleAttrAssign = /(?:=)/;
 var singleAttrValues = [
@@ -6432,6 +6486,7 @@ function getAndRemoveAttr (el, name) {
 
 /*  */
 
+// 自定义指令、v-on的符号形式，v-bind的符号形式, 将这些前缀去除
 var dirRE = /^v-|^@|^:/;
 var forAliasRE = /(.*)\s+(?:in|of)\s+(.*)/;
 var forIteratorRE = /\(([^,]*),([^,]*)(?:,([^,]*))?\)/;
@@ -7085,6 +7140,7 @@ var baseDirectives = {
 
 /*  */
 
+// configurable state
 var warn$2;
 var transforms$1;
 var dataGenFns;
@@ -7311,6 +7367,10 @@ function genProps (props) {
 
 /*  */
 
+/**
+ * Compile a template.
+ */
+// 实际生成AST的地方，options通过上层调用一层层传递
 function compile$1 (
   template,
   options
@@ -7329,6 +7389,7 @@ function compile$1 (
 
 /*  */
 
+// operators like typeof, instanceof and in are allowed
 var prohibitedKeywordRE = new RegExp('\\b' + (
   'do,if,for,let,new,try,var,case,else,with,await,break,catch,class,const,' +
   'super,throw,while,yield,delete,export,import,return,switch,default,' +
@@ -7446,6 +7507,7 @@ var klass$1 = {
 
 /*  */
 
+// style的处理方式和class的处理方式不相同，为啥要这样呢
 function transformNode$1 (el) {
   var styleBinding = getBindingAttr(el, 'style', false /* getStatic */);
   if (styleBinding) {
@@ -7945,6 +8007,8 @@ function makeFunction (code) {
 /*  */
 
 // Vue来源
+// 创建一个缓存函数对象，可以对同一个ID的查询结果进行缓存
+// cached(function f(){}); 缓存id和f(id)结果
 var idToTemplate = cached(function (id) {
   var el = query(id);
   return el && el.innerHTML

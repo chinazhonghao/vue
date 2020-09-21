@@ -159,6 +159,7 @@ export function defineReactive (
   // 每个对象已经有一个dep了，这里为什么还会有dep呢？？--这里的dep是针对属性值是基本类型的情况
   // 属性值为对象时，childOb上会定义Dep
   const dep = new Dep()
+  dep.key = key;
 
   // Object.defineProperty中要用到的属性描述符
   const property = Object.getOwnPropertyDescriptor(obj, key)

@@ -52,7 +52,8 @@ var app = new Vue({
     obj: {
       a: "hello",
       b: "hi"
-    }
+    },
+    noUse: 1
   },
   mixins: [mixins],
 
