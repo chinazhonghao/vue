@@ -86,6 +86,11 @@ var app = new Vue({
     remaining: function () {
       return filters.active(this.todos).length
     },
+    cc: function name1(){
+      return function name2(name){
+        return name;
+      }
+    },
     allDone: {
       get: function () {
         return this.remaining === 0
