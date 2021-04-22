@@ -13,6 +13,7 @@ function updateDOMListeners (oldVnode, vnode) {
   const on = vnode.data.on || {}
   const oldOn = oldVnode.data.on || {}
   const add = vnode.elm._v_add || (vnode.elm._v_add = (event, handler, capture) => {
+    // 调用原生的事件绑定方法
     vnode.elm.addEventListener(event, handler, capture)
   })
   const remove = vnode.elm._v_remove || (vnode.elm._v_remove = (event, handler) => {
