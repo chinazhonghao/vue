@@ -4,32 +4,35 @@
     <meta charset="utf-8">
     <title>组件事件流测试</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-    <style>
-      html, body {
-        font: 13px/18px sans-serif;
-      }
-    </style>
   </head>
   <body>
-
     <div id="el">
       这里是父组件{{ name }}
       <child></child>
     </div>
-
+    <div id="event" style="margin-top: 15px;">
+      <div>这里是事件顺序：</div>
+      <div v-for="(item, index) in events">{{ item }}</div>
+    </div>
     <script>
+    const events = new Vue({
+      el: '#event',
+      data: {
+        events: [],
+      },
+    });
     Vue.component('child', {
       beforeCreate() {
-        console.log('child beforeCreate');
+        events.events.push('child beforeCreate')
       },
       created() {
-        console.log('child created');
+        events.events.push('child created');
       },
       beforeMount() {
-        console.log('child beforeMount');
+        events.events.push('child beforeMount');
       },
       mounted() {
-        console.log('child mounted');
+        events.events.push('child mounted');
       },
       template: '<div>这里是子组件</div>',
     });
@@ -40,16 +43,16 @@
         name: 'parent',
       },
       beforeCreate() {
-        console.log('parent beforeCreate');
+        events.events.push('parent beforeCreate');
       },
       created() {
-        console.log('parent created');
+        events.events.push('parent created');
       },
       beforeMount() {
-        console.log('parent beforeMount');
+        events.events.push('parent beforeMount');
       },
       mounted() {
-        console.log('parent mounted');
+        events.events.push('parent mounted');
       },
     });
     </script>

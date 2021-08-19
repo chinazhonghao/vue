@@ -49,6 +49,8 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const vm: Component = this
     vm.$el = el
     // options.render大部分情况下并没有定义，这是从哪里来呢？？--从每个平台定义的$mount函数而来
+    // 这点其实不太对，options中可以手写render函数，然后SFC形式的通过vue-loader也可以生成render函数
+    // render函数返回一个VNode结构的对象
     // 如果用户参数中没有传入render，则解析template来获取render，否则从用户参数中获取render
     if (!vm.$options.render) {
       vm.$options.render = emptyVNode

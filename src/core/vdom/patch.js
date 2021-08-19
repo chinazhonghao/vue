@@ -130,6 +130,7 @@ export function createPatchFunction (backend) {
         : nodeOps.createElement(tag)
       setScope(vnode)
       createChildren(vnode, children, insertedVnodeQueue)
+      // 难道说只有定义了data才会触发created钩子吗？？？
       if (isDef(data)) {
         invokeCreateHooks(vnode, insertedVnodeQueue)
       }
