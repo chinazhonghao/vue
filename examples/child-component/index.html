@@ -34,8 +34,25 @@
       mounted() {
         events.events.push('child mounted');
       },
-      template: '<div>这里是子组件</div>',
+      template: '<div>这里是子组件<child2></child2></div>',
     });
+
+    Vue.component('child2', {
+      beforeCreate() {
+        events.events.push('child2 beforeCreate')
+      },
+      created() {
+        events.events.push('child2 created');
+      },
+      beforeMount() {
+        events.events.push('child2 beforeMount');
+      },
+      mounted() {
+        events.events.push('child2 mounted');
+      },
+      template: '<div>这里是子子组件</div>',
+    });
+
 
     var vm = new Vue({
       el: '#el',
