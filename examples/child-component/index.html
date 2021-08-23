@@ -1,76 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>组件事件流测试</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-  </head>
+  <head> <meta charset="utf-8"> <title>组件事件流测试</title> <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> </head>
   <body>
-    <div id="el">
-      这里是父组件{{ name }}
-      <child></child>
-    </div>
-    <div id="event" style="margin-top: 15px;">
-      <div>这里是事件顺序：</div>
+    <div id="el">这里是父组件{{ name }}<child></child></div>
+    <div id="event" style="margin-top: 15px;"><div>这里是事件顺序：</div>
       <div v-for="(item, index) in events">{{ item }}</div>
     </div>
     <script>
     const events = new Vue({
-      el: '#event',
-      data: {
-        events: [],
-      },
+      el: '#event', data: { events: [] },
     });
-    Vue.component('child', {
-      beforeCreate() {
-        events.events.push('child beforeCreate')
-      },
-      created() {
-        events.events.push('child created');
-      },
-      beforeMount() {
-        events.events.push('child beforeMount');
-      },
-      mounted() {
-        events.events.push('child mounted');
-      },
-      template: '<div>这里是子组件<child2></child2></div>',
+    const createHooks = (name) => ({
+      beforeCreate() { events.events.push(`${name} beforeCreate`); },
+      created() { events.events.push(`${name} created`); },
+      beforeMount() { events.events.push(`${name} beforeMount`); },
+      mounted() { events.events.push(`${name} mounted`); },
+      beforeUpdate() { events.events.push(`${name} beforeUpdate`);},
+      updated() { events.events.push(`${name} updated`);},
     });
-
-    Vue.component('child2', {
-      beforeCreate() {
-        events.events.push('child2 beforeCreate')
+    Vue.component('child', { ...createHooks('child'), template: '<div>这里是子组件<child2 /><div @click="add">增加: {{value}}</div></div>', 
+      data() {
+        return {
+          value: 0,
+        };
       },
-      created() {
-        events.events.push('child2 created');
-      },
-      beforeMount() {
-        events.events.push('child2 beforeMount');
-      },
-      mounted() {
-        events.events.push('child2 mounted');
-      },
-      template: '<div>这里是子子组件</div>',
+      methods: {
+        add() {
+          this.value += 1;
+        },
+      }
     });
-
-
+    Vue.component('child2', { ...createHooks('child2'), template: '<div>这里是子子组件</div>' });
     var vm = new Vue({
-      el: '#el',
-      data: {
-        name: 'parent',
-      },
-      beforeCreate() {
-        events.events.push('parent beforeCreate');
-      },
-      created() {
-        events.events.push('parent created');
-      },
-      beforeMount() {
-        events.events.push('parent beforeMount');
-      },
-      mounted() {
-        events.events.push('parent mounted');
-      },
+      el: '#el', ...createHooks('parent'), data: { name: 'parent' }
     });
     </script>
   </body>
