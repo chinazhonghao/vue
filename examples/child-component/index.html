@@ -32,7 +32,7 @@
     });
     Vue.component('child2', { ...createHooks('child2'), template: '<div>这里是子子组件</div>' });
     var vm = new Vue({
-      el: '#el', ...createHooks('parent'), data: { name: 'parent' }
+      el: '#el', ...createHooks('parent'), data() { return { name: 'parent' }; }
     });
     </script>
   </body>
