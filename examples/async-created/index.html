@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>组件事件流测试</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+</head>
+
+<body>
+    <div id="el">这里是父组件{{ name }}<child></child>
+    </div>
+    <div id="event" style="margin-top: 15px;">
+        <div>这里是事件顺序：</div>
+        <div v-for="(item, index) in events">{{ item }}</div>
+    </div>
+    <script>
+        const delay = (ms) => new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, ms || Math.random() * 100);
+        });
+        const events = new Vue({
+            el: '#event', data: { events: [] },
+        });
+        const createHooks = (name) => ({
+            async beforeCreate() {
+                events.events.push(`${name} beforeCreate`);
+                await delay();
+                events.events.push(`${name} async beforeCreate`);
+            },
+            async created() { 
+                events.events.push(`${name} created`);
+                await delay();
+                events.events.push(`${name} async created`);
+            },
+            async beforeMount() { 
+                events.events.push(`${name} beforeMount`); 
+                await delay();
+                events.events.push(`${name} async beforeMount`);
+            },
+            async mounted() { 
+                events.events.push(`${name} mounted`); 
+                await delay();
+                events.events.push(`${name} async mounted`);
+            },
+            async beforeUpdate() { 
+                events.events.push(`${name} beforeUpdate`); 
+                await delay();
+                events.events.push(`${name} async beforeUpdate`);
+            },
+            async updated() { 
+                events.events.push(`${name} updated`); 
+                await delay();
+                events.events.push(`${name} async updated`);
+            },
+        });
+        Vue.component('child', {
+            ...createHooks('child'), template: '<div>这里是子组件<child2 /><div @click="add">增加: {{value}}</div></div>',
+            data() {
+                return {
+                    value: 0,
+                };
+            },
+            methods: {
+                add() {
+                    this.value += 1;
+                },
+            }
+        });
+        Vue.component('child2', { ...createHooks('child2'), template: '<div>这里是子子组件</div>' });
+        var vm = new Vue({
+            el: '#el', ...createHooks('parent'), data() { return { name: 'parent' }; }
+        });
+    </script>
+</body>
+
+</html>
