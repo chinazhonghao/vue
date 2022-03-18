@@ -4,11 +4,14 @@
 <head>
   <meta charset="utf-8">
   <title>组件事件流测试</title>
-  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <script src="../vue.bundle.js"></script>
 </head>
 
 <body>
-  <div id="el">这里是父组件{{ name }}<child></child>
+  <div id="el">
+    这里是父组件{{ name }}
+    <child :count="num"></child>
+    <button @click="updateNum">{{num}}</button>
   </div>
   <div id="event" style="margin-top: 15px;">
     <div>这里是事件顺序：</div>
@@ -16,24 +19,28 @@
     <div>{{ count }}</div>
   </div>
   <script>
-    const events = new Vue({
-      el: '#event', data: { events: [], count: 0, }, created() {
-        console.log(this.count);
-        setInterval(() => {
-          this.count++;
-        }, 1000);
-      },
-    });
+    // const events = new Vue({
+    //   el: '', data: { events: [], count: 0 }, created() {
+    //     console.log(this.count);
+    //     // setInterval(() => {
+    //     //   this.count++;
+    //     // }, 1000);
+    //   },
+    // });
     const createHooks = (name) => ({
-      beforeCreate() { events.events.push(`${name} beforeCreate`); },
-      created() { events.events.push(`${name} created`); },
-      beforeMount() { events.events.push(`${name} beforeMount`); },
-      mounted() { events.events.push(`${name} mounted`); },
-      beforeUpdate() { events.events.push(`${name} beforeUpdate`); },
-      updated() { events.events.push(`${name} updated`); },
+      beforeCreate() { console.log((`${name} beforeCreate`)); },
+      created() { console.log((`${name} created`)); },
+      beforeMount() { console.log((`${name} beforeMount`)); },
+      mounted() { console.log((`${name} mounted`)); },
+      beforeUpdate() { console.log((`${name} beforeUpdate`)); },
+      updated() { console.log((`${name} updated`)); },
     });
     Vue.component('child', {
-      ...createHooks('child'), template: '<div>这里是子组件<child2 /><div @click="add">增加: {{value}}</div></div>',
+      ...createHooks('child'), 
+      template: '<div>这里是子组件<div @click="add">增加: {{value}} {{count}}</div></div>',
+      props: {
+        count: Number,
+      },
       data() {
         return {
           value: 0,
@@ -45,9 +52,18 @@
         },
       }
     });
-    Vue.component('child2', { ...createHooks('child2'), template: '<div>这里是子子组件</div>' });
+    // Vue.component('child2', { 
+    //   //...createHooks('child2'), 
+    //   template: '<div>这里是子子组件</div>' });
     var vm = new Vue({
-      el: '#el', ...createHooks('parent'), data() { return { name: 'parent' }; }
+      el: '#el', 
+      ...createHooks('parent'),
+      data() { return { name: 'parent', num: 0 }; },
+      methods: {
+        updateNum() {
+          this.num++;
+        },
+      },
     });
   </script>
 </body>

@@ -1,6 +1,11 @@
 'use strict';
 
 /*  */
+window.process = {
+  env: {
+    NODE_ENV: 'development'
+  },
+};
 
 /**
  * Convert a value to a string that is actually rendered.
@@ -748,7 +753,7 @@ var Watcher = function Watcher (
     }
   }
   // 这里的value是什么？？，为什么要传入一个getter函数
-  // lazy：使用时才会获取值，然后触发依赖收集？？
+  // lazy：使用时才会获取值，然后触发依赖收集？？lazy一般不传值，是一个false, 所以new Watcher时会直接调用get方法
   this.value = this.lazy
     ? undefined
     : this.get();
