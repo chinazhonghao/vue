@@ -51,6 +51,7 @@ export default class Watcher {
     // options
     this.deep = !!options.deep
     this.user = !!options.user
+    // 一般不传lazy, options.lazy为undefined, this.lazy为false
     this.lazy = !!options.lazy
     this.sync = !!options.sync
     this.expression = expOrFn.toString()
@@ -110,6 +111,7 @@ export default class Watcher {
     if (this.deep) {
       // 这个遍历并没有改变什么，不知道有什么用意？？--通过遍历属性就可以触发依赖收集了
       // 深度遍历的时候的Watcher都是当前Watcher
+      // deep表示对value及其下属属性进行监听
       traverse(value)
     }
     popTarget()

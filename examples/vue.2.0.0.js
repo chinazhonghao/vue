@@ -1092,6 +1092,7 @@ function defineReactive$$1 (
   var setter = property && property.set
 
   var childOb = observe(val)
+  debugger;
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
@@ -1100,6 +1101,7 @@ function defineReactive$$1 (
       if (Dep.target) {
         dep.depend()
         if (childOb) {
+          // 对这个值本身的观察， 通过del等方法改变这个值的属性之后，可以通过这里的dep进行通知
           childOb.dep.depend()
         }
         if (Array.isArray(value)) {
@@ -1124,6 +1126,7 @@ function defineReactive$$1 (
       } else {
         val = newVal
       }
+      // 重新观测新的value
       childOb = observe(newVal)
       dep.notify()
     }
@@ -1317,6 +1320,7 @@ function initMethods (vm) {
 
 function initWatch (vm) {
   var watch = vm.$options.watch
+  debugger;
   if (watch) {
     for (var key in watch) {
       var handler = watch[key]

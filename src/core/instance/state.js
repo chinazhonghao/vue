@@ -167,6 +167,7 @@ function makeComputedGetter (getter: Function, owner: Component): Function {
       // 在调用computed函数时，就会触发其所依赖的Observer的getter函数，然后就可以进行依赖收集
       watcher.evaluate()
     }
+    // 这里比较奇怪，为什么这里要手动调用一次呢
     if (Dep.target) {
       // 第一次调用computed属性时，会触发依赖收集，对于每一个被依赖的Observer都会进行收集，因此依赖的每一个Observer有所改变时都会触发computed的改变
       watcher.depend()

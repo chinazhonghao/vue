@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>vue watcher</title>
+    <script src="../vue.2.0.0.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script>
+        const el = new Vue({
+            el: '#root',
+            data: {
+                info: {
+                    user: {
+                        name: '',
+                    },
+                },
+                txt: '',
+            },
+            watch: {
+                'info.user': function(value) {
+                    console.log(value);
+                },
+                // txt: function(value) {
+                //     console.log(value);
+                // }
+            },
+        });
+        console.log(el);
+        setTimeout(() => {
+            el.info.user.name = 'hello';
+            el.info = {
+                user: {
+                    test: {
+                        hello: 'hello',
+                    },
+                },
+            };
+        }, 10);
+    </script>
+</body>
+
+</html>

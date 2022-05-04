@@ -4014,6 +4014,7 @@
       // call the last hook...
       vm._isDestroyed = true;
       // invoke destroy hooks on current rendered tree
+      // 当第二个参数为null的时候，会继续调用$destroy
       vm.__patch__(vm._vnode, null);
       // fire destroyed hook
       callHook(vm, 'destroyed');
@@ -6150,9 +6151,11 @@
       var i, j;
       var data = vnode.data;
       if (isDef(data)) {
+        // 调用自身的destroy函数
         if (isDef(i = data.hook) && isDef(i = i.destroy)) { i(vnode); }
         for (i = 0; i < cbs.destroy.length; ++i) { cbs.destroy[i](vnode); }
       }
+      // 递归调用子节点的destroy函数
       if (isDef(i = vnode.children)) {
         for (j = 0; j < vnode.children.length; ++j) {
           invokeDestroyHook(vnode.children[j]);
