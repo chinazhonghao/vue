@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" >
+        <title>测试reactive</title>
+
+        <script src="../vue.2.0.0.js"></script>
+    </head>
+    
+    <body>
+        <div id="root"></div>
+        <script>
+            new Vue({
+                el: '#root',
+                data: {
+                    arr: [],
+                },
+                computed: {
+                    arrComputed() {
+                        console.log('computed arr');
+                        return this.arr;
+                    }
+                },
+                watch: {
+                    arr() {
+                        console.log('arr changed');
+                        console.log(this);
+                    },
+                    arrComputed() {
+                        console.log('arr computed changed');
+                        console.log(this);
+                    }
+                },
+                created() {
+                    console.log('created');
+                    console.log(this);
+                },
+                methods: {
+                    onClick() {
+                        console.log('clicked');
+                        this.arr = [];
+                    }
+                },
+                template: '<button @click="onClick">点击</button>'
+            });
+        </script>
+    </body>
+</html>

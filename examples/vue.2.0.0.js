@@ -1092,7 +1092,6 @@ function defineReactive$$1 (
   var setter = property && property.set
 
   var childOb = observe(val)
-  debugger;
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
@@ -1299,6 +1298,7 @@ function makeComputedGetter (getter, owner) {
       watcher.evaluate()
     }
     if (Dep.target) {
+      // 应该是为了每次调用computed的时候都进行一次依赖收集吧
       watcher.depend()
     }
     return watcher.value
@@ -1320,7 +1320,6 @@ function initMethods (vm) {
 
 function initWatch (vm) {
   var watch = vm.$options.watch
-  debugger;
   if (watch) {
     for (var key in watch) {
       var handler = watch[key]
@@ -1669,6 +1668,7 @@ function lifecycleMixin (Vue) {
       }
     }
     callHook(vm, 'beforeMount')
+    // render的watcher
     vm._watcher = new Watcher(vm, function () {
       vm._update(vm._render(), hydrating)
     }, noop)
