@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>vue watcher</title>
+    <script src="../vue.bundle.js"></script>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script>
+        const el = new Vue({
+            el: '#root',
+            data: {
+                txt: 0,
+            },
+            methods: {
+                onAdd() {
+                    this.$nextTick(() => {
+                        console.log('最新值：', this.txt);
+                        const dom = document.getElementById('count');
+                        console.log('dom值：', dom.innerText);
+                    });
+                    this.txt += 1;
+                },
+            },
+            template: '<div><div id="count">当前值：{{txt}}</div><button @click="onAdd">加1</button></div>'
+        });
+    </script>
+</body>
+
+</html>
