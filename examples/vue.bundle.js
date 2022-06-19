@@ -3126,6 +3126,7 @@
   /*  */
 
   // inline hooks to be invoked on component VNodes during patch
+  // 这里有点奇怪，为什么不是通过Vue原型上定义的方法呢
   var componentVNodeHooks = {
     init: function init (vnode, hydrating) {
       if (
@@ -3308,6 +3309,7 @@
       options.render = inlineTemplate.render;
       options.staticRenderFns = inlineTemplate.staticRenderFns;
     }
+    // 调用Vue构造函数
     return new vnode.componentOptions.Ctor(options)
   }
 
@@ -6013,8 +6015,10 @@
     function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
       var i = vnode.data;
       if (isDef(i)) {
+        // activate again
         var isReactivated = isDef(vnode.componentInstance) && i.keepAlive;
         if (isDef(i = i.hook) && isDef(i = i.init)) {
+          // 调用组件的data函数，生成data数据
           i(vnode, false /* hydrating */);
         }
         // after calling the init hook, if the vnode is a child component
@@ -11348,6 +11352,8 @@
     el,
     state
   ) {
+    // 这里开启debugger就可以看到scope slot生成的过程，主要是是一个对象，有一个fn，表示生成slotScope的VNode的方法
+    // 在这个方法中可以传入slotScope的参数
     var isLegacySyntax = el.attrsMap['slot-scope'];
     if (el.if && !el.ifProcessed && !isLegacySyntax) {
       return genIf(el, state, genScopedSlot, "null")

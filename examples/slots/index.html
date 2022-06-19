@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>scoped slots demo</title>
+
+  <script src="../vue.bundle.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    Vue.component('slot-holder', {
+      name: 'slot-holder',
+      data() {
+        return {
+          isShow: true,
+        };
+      },
+      template: `
+        <div>
+          <slot :isShow="isShow"></slot>
+        </div>
+      `,
+    });
+
+    window.app = new Vue({
+      el: '#root',
+      template: `
+      <div>
+        父组件部分
+        <slot-holder>
+          <template v-slot="slotProps">
+            <span>{{slotProps.isShow}}</span>
+          </template>
+        </slot-holder>
+      </div>
+      `,
+    });
+  </script>
+</body>
+
+</html>
