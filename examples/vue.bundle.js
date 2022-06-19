@@ -11354,6 +11354,7 @@
   ) {
     // 这里开启debugger就可以看到scope slot生成的过程，主要是是一个对象，有一个fn，表示生成slotScope的VNode的方法
     // 在这个方法中可以传入slotScope的参数
+    // debugger;
     var isLegacySyntax = el.attrsMap['slot-scope'];
     if (el.if && !el.ifProcessed && !isLegacySyntax) {
       return genIf(el, state, genScopedSlot, "null")

@@ -16,6 +16,7 @@
       data() {
         return {
           isShow: true,
+          range: [1, 2, 3],
         };
       },
       template: `
@@ -31,7 +32,7 @@
       <div>
         父组件部分
         <slot-holder>
-          <template v-slot="slotProps">
+          <template v-slot="slotProps" v-for="index in range" :key="index">
             <span>{{slotProps.isShow}}</span>
           </template>
         </slot-holder>
